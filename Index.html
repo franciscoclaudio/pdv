@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sistema PDV - Restaurantes & Bares</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Tela de Loading -->
+    <div id="loading-screen">
+        <div class="logo">
+            <h1>SUA MARCA</h1>
+            <p>Sistema de Gestão PDV</p>
+        </div>
+        
+        <div class="spinner"></div>
+        
+        <div class="loading-text">Inicializando sistema...</div>
+        
+        <div class="loading-progress">
+            <div class="progress-bar"></div>
+        </div>
+    </div>
+
+    <!-- Tela de Login -->
+    <div class="login-container" id="login-container">
+        <div class="login-form">
+            <div class="login-header">
+                <h1>SUA MARCA AQUI</h1>
+                <p>Faça login para continuar</p>
+            </div>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">Usuário:</label>
+                    <input type="text" id="username" name="username" required />
+                </div>
+                <div class="form-group">
+                    <label for="password">Senha:</label>
+                    <input type="password" id="password" name="password" required />
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">
+                    Entrar
+                </button>
+            </form>
+            <div class="login-demo">
+                <p><strong>Demos:</strong></p>
+                <div class="demo-accounts">
+                    <button type="button" class="demo-btn" data-user="garcom" data-pass="123" data-profile="garcom">
+                        Garçom
+                    </button>
+                    <button type="button" class="demo-btn" data-user="caixa" data-pass="123" data-profile="caixa">
+                        Caixa
+                    </button>
+                    <button type="button" class="demo-btn" data-user="cozinha" data-pass="123" data-profile="cozinha">
+                        Cozinha
+                    </button>
+                    <button type="button" class="demo-btn" data-user="gestor" data-pass="123" data-profile="gestor">
+                        Gestor
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sistema Principal -->
+    <div class="main-system" id="main-system" style="display: none">
+        <div class="container">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="logo">
+                    <h1>SUA MARCA</h1>
+                    <p>Sistema de Gestão</p>
+
+                    <!-- Seletor de imagem e pré-visualização -->
+                    <input type="file" id="seletorDeImagem" accept="image/*" />
+                    <button type="button" class="btn btn-secondary btn-carregar-logo">
+                        Carregar Logomarca
+                    </button>
+                    <div class="logo-preview">
+                        <img id="imagemCarregada" src="#" alt="Pré-visualização da Imagem" />
+                    </div>
+                </div>
+                <ul class="nav-menu">
+                    <li class="nav-item active" data-tab="dashboard">
+                        <span class="icon">📊</span>
+                        Dashboard
+                    </li>
+                    <li class="nav-item dropdown" id="atendimento-dropdown">
+                        <div class="nav-item-header">
+                            <span class="icon">👨‍💼</span>
+                            <span class="nav-text">Atendimento</span>
+                            <span class="dropdown-arrow">▼</span>
+                        </div>
+                        <ul class="dropdown-menu">
+                            <li class="dropdown-item" data-tab="pdv">
+                                <span class="icon">💳</span>
+                                PDV
+                            </li>
+                            <li class="dropdown-item" data-tab="pedidos">
+                                <span class="icon">📋</span>
+                                Balcão
+                            </li>
+                            <li class="dropdown-item" data-tab="mesas">
+                                <span class="icon">🪑</span>
+                                Mesas
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="nav-item" data-tab="cozinha">
+                        <span class="icon">👨‍🍳</span>
+                        Cozinha
+                    </li>
+                    <li class="nav-item" data-tab="relatorios">
+                        <span class="icon">📈</span>
+                        Relatórios
+                    </li>
+                    <li class="nav-item" data-tab="produtos">
+                        <span class="icon">🍕</span>
+                        Produtos
+                    </li>
+                </ul>
+                <div class="user-info">
+                    <div class="user-avatar" id="user-avatar">GS</div>
+                    <div class="user-details">
+                        <p class="user-name" id="user-display-name">Gestor Sistema</p>
+                        <p class="user-role" id="user-role">Administrador</p>
+                        <button type="button" class="btn-logout" id="logout-btn">Sair</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="main-content">
+                <div class="header">
+                    <h2 id="page-title">Dashboard</h2>
+                    <div class="header-actions">
+                        <div class="status-indicator">
+                            <span class="status-dot online"></span>
+                            Sistema Online
+                        </div>
+                        <button class="btn-icon" id="refresh-data" title="Atualizar">
+                            🔄
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dashboard Tab -->
+                <div class="tab-content active" id="dashboard">
+                    <div class="dashboard">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Vendas Hoje</h3>
+                                <span class="card-icon">💰</span>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-value">R$ 0,00</p>
+                                <p class="card-change">Sem dados anteriores</p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Pedidos Ativos</h3>
+                                <span class="card-icon">📋</span>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-value">0</p>
+                                <p class="card-change">Em preparação</p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Clientes Atendidos</h3>
+                                <span class="card-icon">👥</span>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-value">0</p>
+                                <p class="card-change">Hoje</p>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-header">
+                                <h3>Mesas Ocupadas</h3>
+                                <span class="card-icon">🪑</span>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-value">0/15</p>
+                                <p class="card-change">Capacidade</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-section mt-20">
+                        <div class="section-header">
+                            <h3>Pedidos Recentes</h3>
+                            <button class="btn btn-sm btn-secondary" id="refresh-orders">Atualizar</button>
+                        </div>
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nº Pedido</th>
+                                        <th>Cliente</th>
+                                        <th>Itens</th>
+                                        <th>Valor</th>
+                                        <th>Status</th>
+                                        <th>Tempo</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recent-orders-body">
+                                    <tr>
+                                        <td colspan="6" class="no-data">
+                                            Nenhum pedido realizado hoje
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-section mt-20">
+                        <div class="section-header">
+                            <h3>Alertas do Sistema</h3>
+                        </div>
+                        <div id="inventory-alerts" class="alerts-container">
+                            <!-- Alertas de estoque serão carregados aqui -->
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-section mt-20">
+                        <div class="section-header">
+                            <h3>Métricas de Performance</h3>
+                        </div>
+                        <div id="performance-metrics" class="metrics-grid">
+                            <!-- Métricas serão carregadas aqui -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PDV Tab -->
+                <div class="tab-content" id="pdv">
+                    <div class="tab-header">
+                        <h3>💳 PDV - Ponto de Venda</h3>
+                        <div class="tab-actions">
+                            <select id="pdv-filter-category">
+                                <option value="all">Todas as Categorias</option>
+                                <option value="Pratos">Pratos</option>
+                                <option value="Bebidas">Bebidas</option>
+                                <option value="Sobremesas">Sobremesas</option>
+                                <option value="Promoções">Promoções</option>
+                            </select>
+                            <button type="button" class="btn btn-primary" id="pdv-novo-pedido">
+                                Novo Pedido
+                            </button>
+                        </div>
+                    </div>
+                    <div class="pdv-container">
+                        <div class="pdv-left">
+                            <div class="categories">
+                                <button type="button" class="category-btn active">Todos</button>
+                                <button type="button" class="category-btn">Pratos</button>
+                                <button type="button" class="category-btn">Bebidas</button>
+                                <button type="button" class="category-btn">Sobremesas</button>
+                                <button type="button" class="category-btn">Promoções</button>
+                            </div>
+                            <div class="products-grid" id="pdv-products-grid"></div>
+                        </div>
+                        <div class="pdv-right">
+                            <div class="order-summary">
+                                <div class="order-header">
+                                    <h3>Pedido Atual</h3>
+                                    <span id="order-type-display">Mesa 1</span>
+                                </div>
+                                <div class="order-items" id="current-order-items">
+                                    <div class="no-items">Nenhum item no pedido</div>
+                                </div>
+                                <div class="order-total">
+                                    <div class="total-line">
+                                        <span>Subtotal:</span>
+                                        <span id="subtotal">R$ 0,00</span>
+                                    </div>
+                                    <div class="total-line">
+                                        <span>Taxa de serviço:</span>
+                                        <span id="service-tax">R$ 0,00</span>
+                                    </div>
+                                    <div class="total-line total">
+                                        <span>Total:</span>
+                                        <span id="total">R$ 0,00</span>
+                                    </div>
+                                </div>
+                                <div class="order-actions">
+                                    <button type="button" class="btn btn-secondary" id="clear-order">
+                                        Limpar
+                                    </button>
+                                    <button type="button" class="btn btn-success" id="add-more-items">
+                                        Adicionar Mais
+                                    </button>
+                                    <button type="button" class="btn btn-primary" id="finalize-order">
+                                        Finalizar Pedido
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Balcão Tab -->
+                <div class="tab-content" id="pedidos">
+                    <div class="tab-header">
+                        <h3>📋 Balcão</h3>
+                        <div class="tab-actions">
+                            <button type="button" class="btn btn-primary" id="novo-pedido-balcao">
+                                Novo Pedido
+                            </button>
+                            <input type="text" id="search-order" placeholder="Buscar pedido..." />
+                            <select id="filter-status-balcao">
+                                <option value="all">Todos os Status</option>
+                                <option value="pending">Pendentes</option>
+                                <option value="preparing">Preparando</option>
+                                <option value="ready">Prontos</option>
+                                <option value="delivered">Entregues</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="pedidos-container">
+                        <div class="balcao-columns">
+                            <div class="balcao-column atendimento-column">
+                                <div class="column-header">
+                                    <h3>Atendimento</h3>
+                                    <span class="column-count" id="count-atendimento">0</span>
+                                </div>
+                                <div class="balcao-cards" id="balcao-atendimento">
+                                    <div class="no-orders">Nenhum pedido em atendimento</div>
+                                </div>
+                            </div>
+                            <div class="balcao-column preparando-column">
+                                <div class="column-header">
+                                    <h3>Preparando</h3>
+                                    <span class="column-count" id="count-preparando">0</span>
+                                </div>
+                                <div class="balcao-cards" id="balcao-preparando">
+                                    <div class="no-orders">Nenhum pedido em preparação</div>
+                                </div>
+                            </div>
+                            <div class="balcao-column pronto-column">
+                                <div class="column-header">
+                                    <h3>Pronto</h3>
+                                    <span class="column-count" id="count-pronto">0</span>
+                                </div>
+                                <div class="balcao-cards" id="balcao-pronto">
+                                    <div class="no-orders">Nenhum pedido pronto</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cozinha Tab -->
+                <div class="tab-content" id="cozinha">
+                    <div class="cozinha-container">
+                        <div class="cozinha-header">
+                            <h3>👨‍🍳 Cozinha - Controle de Produção</h3>
+                            <div class="cozinha-stats">
+                                <div class="stat-item">
+                                    <span class="stat-label">Pendentes:</span>
+                                    <span class="stat-value" id="cozinha-pendentes">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Preparando:</span>
+                                    <span class="stat-value" id="cozinha-preparando">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Prontos:</span>
+                                    <span class="stat-value" id="cozinha-prontos">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="orders-kanban">
+                            <div class="kanban-column">
+                                <div class="kanban-header">
+                                    <h3>Pendentes</h3>
+                                    <span class="kanban-count" id="count-pendentes">0</span>
+                                </div>
+                                <div class="kanban-cards" id="pending-orders">
+                                    <div class="no-orders">Nenhum pedido pendente</div>
+                                </div>
+                            </div>
+                            <div class="kanban-column">
+                                <div class="kanban-header">
+                                    <h3>Preparando</h3>
+                                    <span class="kanban-count" id="count-preparando-cozinha">0</span>
+                                </div>
+                                <div class="kanban-cards" id="preparing-orders">
+                                    <div class="no-orders">Nenhum pedido em preparo</div>
+                                </div>
+                            </div>
+                            <div class="kanban-column">
+                                <div class="kanban-header">
+                                    <h3>Prontos</h3>
+                                    <span class="kanban-count" id="count-prontos-cozinha">0</span>
+                                </div>
+                                <div class="kanban-cards" id="ready-orders">
+                                    <div class="no-orders">Nenhum pedido pronto</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mesas Tab -->
+                <div class="tab-content" id="mesas">
+                    <div class="tab-header">
+                        <h3>🪑 Controle de Mesas</h3>
+                        <div class="tab-actions">
+                            <select id="filter-mesas">
+                                <option value="all">Todas as Mesas</option>
+                                <option value="livre">Apenas Livres</option>
+                                <option value="ocupada">Apenas Ocupadas</option>
+                                <option value="limpando">Apenas Limpando</option>
+                            </select>
+                            <button class="btn btn-primary" id="add-mesa-btn">
+                                + Adicionar Mesa
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mesas-container">
+                        <div class="mesas-stats-cards">
+                            <div class="status-card total">
+                                <h4>Total</h4>
+                                <div class="status-number" id="mesas-total-count">15</div>
+                            </div>
+                            <div class="status-card livres">
+                                <h4>Livres</h4>
+                                <div class="status-number" id="mesas-livres-count">11</div>
+                            </div>
+                            <div class="status-card ocupadas">
+                                <h4>Ocupadas</h4>
+                                <div class="status-number" id="mesas-ocupadas-count">2</div>
+                            </div>
+                            <div class="status-card limpando">
+                                <h4>Limpando</h4>
+                                <div class="status-number" id="mesas-limpando-count">1</div>
+                            </div>
+                        </div>
+                        <div class="mesas-grid-header">
+                            <h4>Mesas Disponíveis</h4>
+                            <div class="mesas-search">
+                                <input type="text" id="search-mesa" placeholder="Buscar mesa..." />
+                            </div>
+                        </div>
+                        <div class="mesas-number-grid" id="mesas-number-grid"></div>
+                    </div>
+                </div>
+                
+                <!-- Relatórios Tab -->
+                <div class="tab-content" id="relatorios">
+                    <div class="relatorios-container">
+                        <div class="report-filters">
+                            <div class="filter-row">
+                                <div class="filter-group">
+                                    <label for="report-period">Período:</label>
+                                    <select id="report-period">
+                                        <option value="today">Hoje</option>
+                                        <option value="yesterday">Ontem</option>
+                                        <option value="week">Esta Semana</option>
+                                        <option value="month">Este Mês</option>
+                                        <option value="custom">Personalizado</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label for="report-type">Tipo de Relatório:</label>
+                                    <select id="report-type">
+                                        <option value="sales">Vendas</option>
+                                        <option value="products">Produtos</option>
+                                        <option value="time">Tempo de Atendimento</option>
+                                        <option value="financial">Financeiro</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="custom-dates-row" id="custom-dates-row">
+                                <div class="filter-group" id="custom-dates-group">
+                                    <label for="date-start">Data Início:</label>
+                                    <input type="date" id="date-start" />
+                                </div>
+                                <div class="filter-group" id="custom-dates-group-end">
+                                    <label for="date-end">Data Fim:</label>
+                                    <input type="date" id="date-end" />
+                                </div>
+                            </div>
+                            
+                            <div class="filter-actions">
+                                <button type="button" class="btn btn-primary" id="generate-report">
+                                    Gerar Relatório
+                                </button>
+                                <button type="button" class="btn btn-secondary" id="export-report">
+                                    Exportar PDF
+                                </button>
+                                <button type="button" class="btn btn-success" id="print-report">
+                                    Imprimir
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="report-results" id="report-results-container">
+                            <div class="no-data">
+                                <h4>📊 Relatório de Vendas e Faturamento</h4>
+                                <p>Use os filtros acima para gerar relatórios de vendas.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="backup-section mt-20">
+                            <div class="section-header">
+                                <h4>💾 Backup de Dados</h4>
+                            </div>
+                            <div class="backup-actions">
+                                <button type="button" class="btn btn-success" id="export-backup">
+                                    📥 Exportar Backup
+                                </button>
+                                <button type="button" class="btn btn-warning" id="import-backup">
+                                    📤 Importar Backup
+                                </button>
+                                <input type="file" id="backup-file" accept=".json" />
+                                <button type="button" class="btn btn-danger" id="reset-system-btn">
+                                    🗑️ Resetar Sistema
+                                </button>
+                            </div>
+                            <div class="backup-info">
+                                <p><strong>Último backup:</strong> <span id="last-backup-date">Nenhum backup realizado</span></p>
+                                <p><strong>Tamanho dos dados:</strong> <span id="data-size">0 KB</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Produtos Tab -->
+                <div class="tab-content" id="produtos">
+                    <div class="produtos-container">
+                        <div class="produtos-header">
+                            <div class="header-left">
+                                <h3>🍕 Gestão de Produtos</h3>
+                                <p class="subtitle">Gerencie seu cardápio e estoque</p>
+                            </div>
+                            <div class="header-right">
+                                <div class="search-products">
+                                    <input type="text" id="search-product" placeholder="Buscar produto..." />
+                                    <select id="filter-category-produto">
+                                        <option value="">Todas Categorias</option>
+                                        <option value="Pratos">Pratos</option>
+                                        <option value="Bebidas">Bebidas</option>
+                                        <option value="Sobremesas">Sobremesas</option>
+                                        <option value="Promoções">Promoções</option>
+                                    </select>
+                                </div>
+                                <button type="button" class="btn btn-primary" id="add-product">
+                                    ➕ Adicionar Produto
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="products-list" id="products-list-container">
+                            <div class="no-data">
+                                <p>Nenhum produto cadastrado</p>
+                                <button class="btn btn-primary mt-10" id="add-first-product">
+                                    Adicionar Primeiro Produto
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="inventory-summary mt-20">
+                            <div class="section-header">
+                                <h4>📦 Resumo do Estoque</h4>
+                            </div>
+                            <div class="inventory-stats">
+                                <div class="inventory-stat">
+                                    <span class="stat-label">Total de Produtos:</span>
+                                    <span class="stat-value" id="total-products">0</span>
+                                </div>
+                                <div class="inventory-stat">
+                                    <span class="stat-label">Com Estoque Baixo:</span>
+                                    <span class="stat-value" id="low-stock-products">0</span>
+                                </div>
+                                <div class="inventory-stat">
+                                    <span class="stat-label">Esgotados:</span>
+                                    <span class="stat-value" id="out-of-stock-products">0</span>
+                                </div>
+                                <div class="inventory-stat">
+                                    <span class="stat-label">Valor Total em Estoque:</span>
+                                    <span class="stat-value" id="total-inventory-value">R$ 0,00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Novo Pedido -->
+    <div class="modal" id="order-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Novo Pedido</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="order-type">Tipo de Pedido:</label>
+                    <select id="order-type">
+                        <option value="table">Mesa</option>
+                        <option value="counter">Balcão</option>
+                        <option value="delivery">Delivery</option>
+                    </select>
+                </div>
+                <div class="form-group" id="table-number-group">
+                    <label for="table-number">Número da Mesa:</label>
+                    <input type="number" id="table-number" min="1" max="50" value="1" />
+                </div>
+                <div class="form-group">
+                    <label for="customer-name">Nome do Cliente (opcional):</label>
+                    <input type="text" id="customer-name" placeholder="Nome do cliente" />
+                </div>
+                <div class="form-group">
+                    <label for="order-notes">Observações:</label>
+                    <textarea id="order-notes" rows="3" placeholder="Observações especiais..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancel-order">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="confirm-order">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Pagamento -->
+    <div class="modal" id="payment-modal">
+        <div class="modal-content payment-modal">
+            <div class="modal-header">
+                <h3>Processar Pagamento</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancel-payment">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="confirm-payment">Confirmar Pagamento</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detalhes Mesa -->
+    <div class="modal" id="mesa-details-modal">
+        <div class="modal-content mesa-modal">
+            <div class="modal-header">
+                <h3 id="mesa-modal-title">Mesa #</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="mesa-details-container">
+                    <div class="mesa-status-info" id="mesa-status-info">Pedidos em andamento</div>
+                    
+                    <div class="mesa-garcom-info" id="mesa-garcom-section">
+                        <div class="garcom-avatar" id="mesa-garcom-avatar">GS</div>
+                        <div class="garcom-details">
+                            <div class="garcom-name" id="mesa-garcom-name">—</div>
+                            <div class="garcom-role" id="mesa-garcom-role">—</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mesa-items-list" id="mesa-items-list"></div>
+                    <div class="mesa-financial-summary">
+                        <div class="summary-line">
+                            <span>Subtotal:</span>
+                            <span id="mesa-subtotal">R$ 0,00</span>
+                        </div>
+                        <div class="summary-line">
+                            <span>Taxa de serviço (10%):</span>
+                            <span id="mesa-taxa-servico">R$ 0,00</span>
+                        </div>
+                        <div class="summary-line total">
+                            <span><strong>Total</strong></span>
+                            <span><strong id="mesa-total">R$ 0,00</strong></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="add-item-mesa">➕ Adicionar Item</button>
+                <button type="button" class="btn btn-warning" id="edit-mesa-pedido">✏️ Editar Pedido</button>
+                <button type="button" class="btn btn-primary" id="fechar-conta-mesa">💳 Fechar Conta</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Adicionar Produto -->
+    <div class="modal" id="add-product-modal">
+        <!-- Conteúdo será gerado dinamicamente -->
+    </div>
+    
+    <!-- Modal Editar Produto -->
+    <div class="modal" id="edit-product-modal">
+        <!-- Conteúdo será gerado dinamicamente -->
+    </div>
+    
+    <!-- Modal Configurações -->
+    <div class="modal" id="settings-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>⚙️ Configurações do Sistema</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="settings-tabs">
+                    <div class="settings-tab active" data-tab="general">Geral</div>
+                    <div class="settings-tab" data-tab="appearance">Aparência</div>
+                    <div class="settings-tab" data-tab="backup">Backup</div>
+                    <div class="settings-tab" data-tab="advanced">Avançado</div>
+                </div>
+                
+                <div class="settings-content" id="settings-general">
+                    <h4>Configurações Gerais</h4>
+                    <div class="form-group">
+                        <label for="setting-tax-rate">Taxa de Serviço (%):</label>
+                        <input type="number" id="setting-tax-rate" min="0" max="50" step="0.1" value="10" />
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-auto-save">
+                            <input type="checkbox" id="setting-auto-save" checked />
+                            Salvar automaticamente
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-print-receipt">
+                            <input type="checkbox" id="setting-print-receipt" checked />
+                            Imprimir comanda automaticamente
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="settings-content" id="settings-appearance">
+                    <h4>Aparência</h4>
+                    <div class="form-group">
+                        <label for="setting-theme">Tema:</label>
+                        <select id="setting-theme">
+                            <option value="light">Claro</option>
+                            <option value="dark">Escuro</option>
+                            <option value="auto">Automático</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-primary-color">Cor Principal:</label>
+                        <input type="color" id="setting-primary-color" value="#af3a3a" />
+                    </div>
+                </div>
+                
+                <div class="settings-content" id="settings-backup">
+                    <h4>Backup e Restauração</h4>
+                    <p>Faça backup dos seus dados regularmente.</p>
+                    <div class="backup-actions">
+                        <button class="btn btn-success" id="backup-now">Fazer Backup Agora</button>
+                        <button class="btn btn-warning" id="restore-backup-btn">Restaurar Backup</button>
+                    </div>
+                    <div class="backup-history">
+                        <h5>Histórico de Backups</h5>
+                        <div id="backup-list"></div>
+                    </div>
+                </div>
+                
+                <div class="settings-content" id="settings-advanced">
+                    <h4>Configurações Avançadas</h4>
+                    <div class="form-group">
+                        <label for="setting-debug-mode">
+                            <input type="checkbox" id="setting-debug-mode" />
+                            Modo Desenvolvedor
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="setting-clear-data">
+                            <button class="btn btn-danger" id="clear-all-data">Limpar Todos os Dados</button>
+                        </label>
+                        <small>Esta ação não pode ser desfeita!</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancel-settings">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="save-settings">Salvar Configurações</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Confirmação -->
+    <div class="modal" id="confirm-modal">
+        <div class="modal-content confirm-modal">
+            <div class="modal-header">
+                <h3 id="confirm-title">Confirmar ação</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message">Tem certeza que deseja realizar esta ação?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="confirm-cancel">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="confirm-ok">Confirmar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Informação -->
+    <div class="modal" id="info-modal">
+        <div class="modal-content info-modal">
+            <div class="modal-header">
+                <h3 id="info-title">Informação</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p id="info-message"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="info-ok">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="script/main.js"></script>
+    
+    <!-- Script para gerenciar a tela de loading -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const loadingScreen = document.getElementById('loading-screen');
+        const loadingText = loadingScreen.querySelector('.loading-text');
+        const progressBar = loadingScreen.querySelector('.progress-bar');
+        
+        // Simular progresso
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+            progress += Math.random() * 10;
+            if (progress > 90) progress = 90;
+            progressBar.style.width = progress + '%';
+        }, 300);
+        
+        // Quando o sistema estiver inicializado, esconder loading
+        window.addEventListener('systemInitialized', function(event) {
+            clearInterval(progressInterval);
+            progressBar.style.width = '100%';
+            loadingText.textContent = 'Sistema pronto!';
+            
+            setTimeout(() => {
+                loadingScreen.style.opacity = '0';
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                }, 500);
+            }, 500);
+        });
+        
+        // Se houver erro, mostrar mensagem
+        window.addEventListener('error', function() {
+            clearInterval(progressInterval);
+            loadingText.textContent = 'Erro ao inicializar. Recarregando...';
+            progressBar.style.background = '#e74c3c';
+            
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        });
+    });
+    </script>
+</body>
+</html>

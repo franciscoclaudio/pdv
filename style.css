@@ -1,0 +1,657 @@
+/* ===========================
+   STYLE.CSS - refatorado + sidebar fixa no canto esquerdo
+   =========================== */
+
+/* ===========================
+   PARTE 1/5 - VARIÁVEIS E RESET
+   =========================== */
+
+/* Variáveis CSS (tema centralizado) */
+:root{
+  --primary-color: #af3a3a;
+  --secondary-color: #9c7424;
+  --accent-color: #8a6561;
+  --success-color: #27ae60;
+  --warning-color: #f39c12;
+  --danger-color: #e74c3c;
+  --info-color: #17a2b8;
+  --light-color: #ecf0f1;
+  --dark-color: #2c3e50;
+  --muted-color: #666;
+  --text-color: #333;
+  --bg-color: #f5f7fa;
+  --glass-bg: rgba(255,255,255,0.7);
+  --border-radius: 10px;
+  --box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+  --soft-shadow: 0 3px 8px rgba(0,0,0,0.06);
+  --transition: all 250ms cubic-bezier(.4,.0,.2,1);
+  --sidebar-width: 260px;
+  --sidebar-collapsed: 72px;
+  --header-height: 80px;
+  --max-content-width: 1200px;
+  --safe-gap: 20px;
+  --radius-pill: 999px;
+}
+
+/* Reset & tipografia base */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family: "Inter", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: var(--bg-color);
+  color: var(--text-color);
+  line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  overflow-x:hidden;
+}
+
+/* Scrollbar custom */
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent;border-radius:8px}
+::-webkit-scrollbar-thumb{
+  background: rgba(0,0,0,0.12);
+  border-radius:8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover{background: rgba(0,0,0,0.18)}
+
+/* ===========================
+   LAYOUT - SIDEBAR FIXA (desktop)
+   =========================== */
+
+/* Container principal (layout com sidebar fixa + conteúdo) */
+.container{
+  display:flex;
+  min-height:100vh;
+  align-items:stretch;
+  gap:var(--safe-gap);
+  width:100%;
+  max-width:none;
+  margin:0;
+  padding:0;
+}
+
+/* Sidebar fixada à esquerda (desktop) */
+.sidebar{
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  z-index: 1000;
+  box-shadow: var(--soft-shadow);
+  overflow-y: auto;
+  transform: translateZ(0);
+  background: linear-gradient(180deg, var(--primary-color) 0%, #333 100%);
+  color:#fff;
+  padding:18px 12px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+/* Quando a sidebar estiver "colapsada" (caso queira usar) */
+.sidebar.collapsed{
+  width:var(--sidebar-collapsed);
+  min-width:var(--sidebar-collapsed);
+}
+
+/* Main content deslocado para não ficar atrás da sidebar */
+.main-content{
+  margin-left: var(--sidebar-width);
+  padding:24px;
+  overflow:auto;
+  min-height:100vh;
+  background:transparent;
+}
+
+/* ===========================
+   LOGIN SCREEN
+   =========================== */
+.login-container{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:100vh;
+  padding:24px;
+  background: linear-gradient(180deg, var(--primary-color) 0%, #333 100%);
+}
+.login-form{
+  width:100%;
+  max-width:420px;
+  background: #fff;
+  border-radius:12px;
+  padding:36px;
+  box-shadow:0 18px 40px rgba(0,0,0,0.18);
+  animation: fadeInUp .45s ease;
+}
+.login-header{text-align:center;margin-bottom:18px}
+.login-header h1{color:var(--primary-color);font-size:1.6rem;margin-bottom:6px}
+.login-header p{color:var(--muted-color);font-size:0.95rem}
+
+.login-demo{margin-top:18px;padding-top:18px;border-top:1px solid #efefef}
+.demo-accounts{display:flex;flex-direction:column;gap:10px}
+.demo-btn{
+  padding:10px;border-radius:8px;border:1px solid #eee;background:#fbfbfb;
+  cursor:pointer;font-weight:600;transition:var(--transition);
+}
+.demo-btn:hover{
+  background:var(--secondary-color);color:#fff;border-color:var(--secondary-color);
+  transform:translateY(-3px)
+}
+
+/* ===========================
+   SIDEBAR (conteúdo interno)
+   =========================== */
+.logo{
+  background: #fff;
+  color:var(--text-color);
+  text-align:center;padding:16px;border-radius:8px;margin:12px;
+  box-shadow:0 6px 18px rgba(0,0,0,0.06);
+}
+.logo h1{font-size:1.1rem;margin-bottom:4px}
+.logo p{font-size:0.8rem;opacity:.8}
+
+/* Pré-visualização da logomarca */
+.logo img#imagemCarregada {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin-top: 8px;
+}
+
+/* Navegação */
+.nav-menu{list-style:none;padding:6px 4px;display:flex;flex-direction:column;gap:6px;flex:1;overflow:auto}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:10px;
+  color:#fff;text-decoration:none;cursor:pointer;border-left:4px solid transparent;
+  transition:var(--transition);white-space:nowrap;font-weight:600;
+}
+.nav-item .icon{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;font-size:1.05rem}
+.nav-item:hover,.nav-item.active{
+  background:rgba(255,255,255,0.08);transform:translateY(-2px);border-left-color:var(--secondary-color)
+}
+.nav-item.dropdown{padding:0;border-left:none}
+.nav-item-header{display:flex;align-items:center;padding:12px 14px;gap:10px;width:100%}
+.dropdown-menu{list-style:none;padding:6px 0;margin-top:6px;background:transparent}
+.dropdown-item{padding:10px 20px 10px 44px;display:flex;align-items:center;gap:10px;color:#fff;opacity:1;transition:var(--transition)}
+.dropdown-item:hover{background:rgba(255,255,255,0.06);padding-left:50px}
+
+/* User info */
+.user-info{display:flex;align-items:center;padding:12px;border-top:1px solid rgba(255,255,255,0.06);gap:10px;margin-top:auto}
+.user-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--secondary-color);color:#fff;font-weight:700}
+.user-details p{margin:0}
+.user-name{font-weight:700}
+.user-role{font-size:0.85rem;opacity:0.8}
+.btn-logout{
+  background:none;border:1px solid #ffdfdf;color:#ffdddd;padding:6px 8px;border-radius:8px;
+  cursor:pointer;font-size:0.8rem;transition:var(--transition)
+}
+.btn-logout:hover{background:#e74c3c;color:#fff;border-color:#e74c3c;transform:scale(1.03)}
+
+/* ===========================
+   MAIN CONTENT (conteúdo principal)
+   =========================== */
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid #eee;position:relative;z-index:2}
+.header h2{color:var(--primary-color);font-size:1.6rem}
+.header-actions{display:flex;gap:10px;align-items:center}
+
+.status-indicator{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#fff;border-radius:999px;box-shadow:var(--soft-shadow);font-size:0.9rem}
+.status-dot{width:10px;height:10px;border-radius:50%}
+.status-dot.online{background:var(--success-color);animation:pulse 2s infinite}
+
+/* ===========================
+   TABS / CONTEÚDOS
+   =========================== */
+.tab-content{display:none;animation:fadeIn .35s ease}
+.tab-content.active{display:block}
+
+.tab-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid #f1f1f1;gap:16px;flex-wrap:wrap}
+.tab-actions{display:flex;gap:12px;align-items:center}
+.tab-actions input, .tab-actions select{padding:8px 12px;border-radius:8px;border:1px solid #e5e5e5}
+
+.no-orders{text-align:center;padding:28px;background:#fff;border-radius:12px;box-shadow:var(--soft-shadow);color:#999}
+
+/* ===========================
+   BOTÕES
+   =========================== */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 16px;border-radius:10px;border:none;cursor:pointer;
+  transition:var(--transition);font-weight:700;text-decoration:none;color:inherit;background:transparent;
+}
+.btn:disabled{opacity:.6;cursor:not-allowed}
+.btn:not(:disabled):hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(0,0,0,0.08)}
+
+.btn-primary{background:var(--secondary-color);color:#fff}
+.btn-primary:hover{background:#8a6520}
+
+.btn-secondary{background:#95a5a6;color:#fff}
+.btn-success{background:var(--success-color);color:#fff}
+.btn-warning{background:var(--warning-color);color:#fff}
+.btn-danger{background:var(--danger-color);color:#fff}
+.btn-info{background:var(--info-color);color:#fff}
+
+.btn-sm{padding:6px 10px;font-size:0.85rem}
+.btn-block{width:100%}
+
+/* Icon buttons */
+.btn-icon{width:36px;height:36px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:1px solid #eee}
+.btn-icon:hover{background:rgba(0,0,0,0.03);transform:scale(1.08)}
+
+/* ===========================
+   CARDS / DASHBOARD
+   =========================== */
+.card{
+  background:#fff;border-radius:12px;padding:18px;box-shadow:var(--box-shadow);transition:var(--transition)
+}
+.card:hover{transform:translateY(-6px);box-shadow:0 16px 36px rgba(0,0,0,0.12)}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.card-value{font-size:1.6rem;font-weight:800;color:var(--primary-color)}
+
+.dashboard{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px}
+
+/* ===========================
+   FORMS
+   =========================== */
+.form-group{margin-bottom:12px}
+.form-group label{display:block;margin-bottom:6px;font-weight:700;color:var(--text-color);font-size:0.9rem}
+.form-group input, .form-group select, .form-group textarea{
+  width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e8e8e8;background:#fff;transition:var(--transition)
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus{outline:none;box-shadow:0 0 0 4px rgba(156,116,36,0.08);border-color:var(--secondary-color)}
+
+.input-error{border-color:var(--danger-color) !important;background:#fff5f5}
+.input-success{border-color:var(--success-color) !important;background:#f0fff4}
+
+/* ===========================
+   TABELAS
+   =========================== */
+.table-container{overflow:auto;border-radius:10px;box-shadow:var(--soft-shadow)}
+.data-table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden}
+.data-table th, .data-table td{padding:12px 14px;text-align:left;border-bottom:1px solid #f1f1f1}
+.data-table th{background:#fbfbfb;font-weight:800;position:sticky;top:0;z-index:5}
+.data-table tr:hover{background:#f8f8f8}
+
+/* ===========================
+   NOTIFICAÇÕES / DIALOGS
+   =========================== */
+.notification{
+  position:fixed;top:20px;right:20px;background:#fff;border-radius:12px;box-shadow:0 12px 36px rgba(0,0,0,0.12);
+  z-index:1200;transform:translateX(200%);opacity:0;transition:var(--transition);min-width:320px;border-left:6px solid var(--secondary-color)
+}
+.notification.show{transform:translateX(0);opacity:1}
+.notification-success{border-left-color:var(--success-color)}
+.notification-error{border-left-color:var(--danger-color)}
+.notification-warning{border-left-color:var(--warning-color)}
+.notification-content{padding:14px 16px;display:flex;align-items:center;gap:12px}
+.notification-message{flex:1;font-weight:600}
+.notification-close{background:none;border:none;font-size:18px;cursor:pointer;color:#999}
+
+.notification-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.48);display:flex;align-items:center;justify-content:center;z-index:10001;opacity:0;transition:opacity .25s;
+}
+.notification-overlay.show{opacity:1}
+.notification-dialog{background:#fff;border-radius:12px;box-shadow:0 16px 48px rgba(0,0,0,0.2);min-width:360px;padding:18px;transform:scale(.95);opacity:0;transition:var(--transition)}
+.notification-dialog.show{transform:scale(1);opacity:1}
+
+/* ===========================
+   PDV - PRODUTOS E RESUMO
+   =========================== */
+.pdv-container{display:flex;gap:18px;height:calc(100vh - 220px);align-items:stretch}
+.pdv-left{flex:3;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+.pdv-right{flex:1;background:#fff;border-radius:12px;padding:16px;box-shadow:var(--soft-shadow);display:flex;flex-direction:column}
+
+/* ... produtos, order summary etc (mantidos) ... */
+
+.categories{display:flex;gap:10px;flex-wrap:wrap}
+.category-btn{padding:8px 14px;border-radius:999px;border:1px solid #eee;background:#fff;cursor:pointer;font-weight:700;transition:var(--transition)}
+.category-btn.active{background:var(--secondary-color);color:#fff;border-color:var(--secondary-color)}
+
+.products-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;overflow:auto;padding:10px;
+}
+.product-item{
+  background:#fff;border-radius:12px;padding:16px;text-align:center;cursor:pointer;box-shadow:var(--soft-shadow);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:140px;transition:var(--transition)
+}
+.product-item:hover{transform:translateY(-6px);box-shadow:0 12px 30px rgba(0,0,0,0.12);border:2px solid rgba(0,0,0,0.04)}
+.product-image{font-size:2.6rem;line-height:1}
+.product-name{font-weight:700;color:#333}
+.product-price{font-weight:800;color:var(--secondary-color)}
+
+.order-summary h3{margin-bottom:12px;color:var(--primary-color)}
+.order-items{flex:1;overflow:auto;padding-right:6px}
+.order-item{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f5f5f5;gap:8px}
+.order-item-info{flex:1}
+.order-item-name{font-weight:700}
+.order-item-price{color:#666}
+.order-item-controls{display:flex;align-items:center;gap:8px}
+.quantity-btn{width:32px;height:32px;border-radius:50%;border:1px solid #eee;background:#fff;cursor:pointer;font-weight:800}
+.order-item-total{font-weight:800;color:var(--secondary-color);min-width:74px;text-align:right}
+
+.order-total{border-top:1px solid #eee;padding-top:12px;margin-top:12px}
+.total-line{display:flex;justify-content:space-between;margin-bottom:8px}
+.total-line.total{font-size:1.1rem;font-weight:800;color:var(--primary-color);border-top:1px solid #eee;padding-top:10px}
+
+/* ===========================
+   BALCÃO / KANBAN / COZINHA
+   =========================== */
+.balcao-columns{display:flex;gap:18px;height:calc(100vh - 250px);overflow:auto;padding:10px}
+.balcao-column{flex:1;background:#f8f9fa;border-radius:12px;padding:12px;display:flex;flex-direction:column;min-width:280px}
+.balcao-card{background:#fff;border-radius:10px;padding:12px;box-shadow:var(--soft-shadow);border-left:4px solid var(--secondary-color)}
+.balcao-card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.balcao-card-items{margin-bottom:6px}
+.balcao-card-item{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f5f5}
+.balcao-card-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Kanban cozinha */
+.orders-kanban{display:flex;gap:16px;height:100%}
+.kanban-column{flex:1;background:#f8f9fa;border-radius:12px;padding:12px;display:flex;flex-direction:column;min-width:250px}
+.kanban-card{background:#fff;border-radius:10px;padding:12px;box-shadow:var(--soft-shadow);border-left:4px solid var(--secondary-color)}
+
+/* ===========================
+   MESAS
+   =========================== */
+.mesas-container{display:flex;flex-direction:column;gap:18px;background:transparent}
+.mesas-stats-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.status-card{background:#fff;border-radius:12px;padding:18px;text-align:center;border-top:4px solid;box-shadow:var(--soft-shadow)}
+.status-card.total{border-top-color:var(--primary-color)}
+.status-card.livres{border-top-color:var(--success-color)}
+.status-card.ocupadas{border-top-color:var(--accent-color)}
+.status-card.limpando{border-top-color:var(--warning-color)}
+
+.mesas-number-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin-top:6px}
+.mesa-number-card{background:#fff;border-radius:12px;padding:16px;text-align:center;cursor:pointer;position:relative;min-height:100px;border:2px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.mesa-number-card.livre{border-color:var(--success-color);background:rgba(39,174,96,0.04)}
+.mesa-number-card.ocupada{border-color:var(--accent-color);background:rgba(138,101,97,0.04)}
+.mesa-status-badge{position:absolute;top:10px;right:10px;padding:6px 8px;border-radius:999px;font-weight:800;font-size:0.75rem}
+.mesa-status-badge.livre{background:var(--success-color);color:#fff}
+.mesa-status-badge.ocupada{background:var(--accent-color);color:#fff}
+.mesa-number{font-size:1.8rem;font-weight:900;color:var(--primary-color)}
+
+.mesa-modal .modal-content{max-width:520px;width:95%}
+
+/* ===========================
+   MODALS (genérico)
+   =========================== */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1100;align-items:center;justify-content:center;padding:18px}
+.modal.active{display:flex}
+.modal-content{background:#fff;border-radius:12px;width:100%;max-width:720px;box-shadow:0 18px 44px rgba(0,0,0,0.14);max-height:90vh;overflow:auto}
+.modal-header{display:flex;justify-content:space-between;align-items:center;padding:14px;border-bottom:1px solid #f1f1f1;position:sticky;top:0;background:#fff;z-index:2}
+.modal-body{padding:16px}
+.modal-footer{padding:14px;border-top:1px solid #f1f1f1;display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap;background:#fff}
+
+.close{background:none;border:none;font-size:20px;cursor:pointer;padding:6px;border-radius:8px}
+.close:hover{background:rgba(0,0,0,0.03)}
+
+/* ===========================
+   RELATÓRIOS / PRODUTOS / BACKUP
+   =========================== */
+.relatorios-container,.produtos-container{background:#fff;border-radius:12px;padding:18px;box-shadow:var(--soft-shadow)}
+.products-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.product-card{display:flex;gap:12px;background:#f8f9fa;border-radius:12px;padding:12px;align-items:center}
+
+/* ===========================
+   UTILITÁRIOS
+   =========================== */
+.text-center{text-align:center}
+.text-right{text-align:right}
+.mt-10{margin-top:10px}
+.mt-20{margin-top:20px}
+.mb-10{margin-bottom:10px}
+.mb-20{margin-bottom:20px}
+.p-10{padding:10px}
+.p-20{padding:20px}
+.d-none{display:none}
+.d-block{display:block}
+.d-flex{display:flex}
+.flex-1{flex:1}
+.gap-10{gap:10px}
+.gap-20{gap:20px}
+
+/* ===========================
+   PRINT
+   =========================== */
+@media print{
+  .sidebar,.header-actions,.btn,.tab-actions,.notification,.modal{display:none !important}
+  body{background:#fff}
+  .card, .order-card, .mesa-card{box-shadow:none;border:1px solid #ddd;page-break-inside:avoid}
+}
+
+/* ===========================
+   RESPONSIVIDADE
+   =========================== */
+@media (max-width:1200px){
+  .container{padding:0 12px}
+  .pdv-container{height:auto}
+}
+@media (max-width:1024px){
+  .products-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+  .balcao-column{min-width:240px}
+  .mesas-number-grid{grid-template-columns:repeat(auto-fill,minmax(110px,1fr))}
+}
+@media (max-width:768px){
+  /* Em mobile a sidebar volta a ser relativa e o layout empilha */
+  .sidebar{
+    position: relative;
+    width: 100%;
+    min-width: auto;
+    height: auto;
+    transform: none;
+    box-shadow: none;
+    overflow: visible;
+    padding:10px;
+    flex-direction:row;
+    align-items:center;
+  }
+
+  .main-content{
+    margin-left: 0;
+    padding:16px;
+  }
+
+  .container{
+    flex-direction:column;
+    gap:12px;
+  }
+
+  .products-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+  .mesas-number-grid{grid-template-columns:repeat(3,1fr)}
+  .notification{left:10px;right:10px;top:10px;min-width:auto}
+  .modal-content{width:95%}
+}
+@media (max-width:480px){
+  .products-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+  .card{padding:12px}
+  .product-item{min-height:120px;padding:12px}
+  .header h2{font-size:1.25rem}
+  .category-btn{padding:6px 10px;font-size:0.9rem}
+}
+
+/* ===========================
+   Acessibilidade e interações
+   =========================== */
+.btn:focus, input:focus, select:focus, textarea:focus, button:focus{
+  outline:3px solid rgba(156,116,36,0.12);
+  outline-offset:2px;
+}
+
+/* screen reader helper */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+/* animações extras */
+@keyframes fadeInUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+/* Ajustes para usar todo o espaço à direita da sidebar fixa */
+.container {
+  gap: 0;                 /* remove gaps que reduzem espaço útil */
+  padding: 0;             /* evita espaçamento externo */
+  max-width: none;        /* permite uso total da largura */
+}
+
+/* Garante que o conteúdo principal ocupe todo o espaço restante */
+.main-content {
+  margin-left: var(--sidebar-width);           /* desloca para a direita da sidebar */
+  width: calc(100% - var(--sidebar-width));    /* ocupa o espaço restante */
+  max-width: none;
+  padding: 24px;                               /* mantém padding interno */
+  box-sizing: border-box;
+}
+
+/* Se preferir um espaçamento interno menor em telas grandes, use este ajuste opcional */
+/* .main-content { padding: 16px 32px; } */
+
+/* Em telas pequenas mantemos o layout empilhado (semanticamente igual ao anterior) */
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+    width: 100%;
+    padding: 16px;
+  }
+  .container {
+    gap: var(--safe-gap);
+    padding: 0 12px;
+  }
+}
+/* ===========================
+   LOADING SCREEN
+   =========================== */
+#loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, var(--primary-color) 0%, #333 100%);
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-family: 'Inter', sans-serif;
+    transition: opacity 0.5s;
+}
+
+#loading-screen .logo {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 30px 40px;
+    border-radius: 20px;
+    text-align: center;
+    margin-bottom: 40px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+#loading-screen .logo h1 {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+#loading-screen .logo p {
+    opacity: 0.8;
+}
+
+#loading-screen .spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+#loading-screen .loading-text {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+}
+
+#loading-screen .loading-progress {
+    width: 200px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+#loading-screen .progress-bar {
+    height: 100%;
+    background: white;
+    width: 0%;
+    transition: width 0.3s;
+    border-radius: 2px;
+}
+
+/* ===========================
+   LOGO PREVIEW
+   =========================== */
+.logo-preview {
+    margin-top: 10px;
+}
+
+#imagemCarregada {
+    max-width: 100%;
+    max-height: 140px;
+    display: none;
+    border-radius: 8px;
+    margin-top: 8px;
+}
+
+.btn-carregar-logo {
+    margin-top: 10px;
+    width: 100%;
+}
+
+#seletorDeImagem {
+    display: none;
+}
+
+/* ===========================
+   UTILITÁRIOS ADICIONAIS
+   =========================== */
+.no-data {
+    text-align: center;
+    padding: 30px;
+    color: #999;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+/* ===========================
+   RESPONSIVIDADE ADICIONAL
+   =========================== */
+@media (max-width: 768px) {
+    #loading-screen .logo {
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    #loading-screen .logo h1 {
+        font-size: 1.5rem;
+    }
+    
+    #loading-screen .loading-progress {
+        width: 150px;
+    }
+}
+/* ===========================
+   FIM - Arquivo atualizado
+   =========================== */
