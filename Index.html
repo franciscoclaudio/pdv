@@ -3,34 +3,18 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Sistema PDV para Restaurantes e Bares" />
     <title>Sistema PDV - Restaurantes & Bares</title>
+    <!-- link rel="stylesheet" href="style.css" /-->
     <link rel="stylesheet" href="style.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <!-- Tela de Loading -->
-    <div id="loading-screen">
-        <div class="logo">
-            <h1>SUA MARCA</h1>
-            <p>Sistema de Gestão PDV</p>
-        </div>
-        
-        <div class="spinner"></div>
-        
-        <div class="loading-text">Inicializando sistema...</div>
-        
-        <div class="loading-progress">
-            <div class="progress-bar"></div>
-        </div>
-    </div>
-
     <!-- Tela de Login -->
     <div class="login-container" id="login-container">
         <div class="login-form">
             <div class="login-header">
-                <h1>SUA MARCA AQUI</h1>
+                <!-- ID adicionado para que o script logo.js possa substituir o texto pela imagem -->
+                <h1 id="login-brand">SUA MARCA AQUI</h1>
                 <p>Faça login para continuar</p>
             </div>
             <form id="login-form">
@@ -61,6 +45,10 @@
                     <button type="button" class="demo-btn" data-user="gestor" data-pass="123" data-profile="gestor">
                         Gestor
                     </button>
+                    </div>
+                    <p style="margin-top: 15px; font-size: 0.85rem; color: #666;">
+                        💡 <strong>Dica:</strong> Funcionários cadastrados podem fazer login usando seu <strong>nome</strong> ou <strong>e-mail</strong>.
+                    </p>
                 </div>
             </div>
         </div>
@@ -74,15 +62,9 @@
                 <div class="logo">
                     <h1>SUA MARCA</h1>
                     <p>Sistema de Gestão</p>
-
                     <!-- Seletor de imagem e pré-visualização -->
-                    <input type="file" id="seletorDeImagem" accept="image/*" />
-                    <button type="button" class="btn btn-secondary btn-carregar-logo">
-                        Carregar Logomarca
-                    </button>
-                    <div class="logo-preview">
-                        <img id="imagemCarregada" src="#" alt="Pré-visualização da Imagem" />
-                    </div>
+                    <input type="file" id="seletorDeImagem" accept="image/*" style="display: none" />
+                    <button type="button" onclick="document.getElementById('seletorDeImagem').click()" class="btn btn-secondary" style="margin-top:10px; width:100%;">Carregar Logomarca</button>
                 </div>
                 <ul class="nav-menu">
                     <li class="nav-item active" data-tab="dashboard">
@@ -110,6 +92,10 @@
                             </li>
                         </ul>
                     </li>
+                    <li class="nav-item" data-tab="caixa">
+                        <span class="icon">💰</span>
+                        Caixa
+                    </li>
                     <li class="nav-item" data-tab="cozinha">
                         <span class="icon">👨‍🍳</span>
                         Cozinha
@@ -118,9 +104,22 @@
                         <span class="icon">📈</span>
                         Relatórios
                     </li>
-                    <li class="nav-item" data-tab="produtos">
-                        <span class="icon">🍕</span>
-                        Produtos
+                    <li class="nav-item dropdown" id="cadastro-dropdown">
+                        <div class="nav-item-header">
+                            <span class="icon">📝</span>
+                            <span class="nav-text">Cadastro</span>
+                            <span class="dropdown-arrow">▼</span>
+                        </div>
+                        <ul class="dropdown-menu">
+                            <li class="dropdown-item" data-tab="produtos">
+                                <span class="icon">🍕</span>
+                                Produtos
+                            </li>
+                            <li class="dropdown-item" data-tab="funcionarios">
+                                <span class="icon">👥</span>
+                                Funcionários
+                            </li>
+                        </ul>
                     </li>
                 </ul>
                 <div class="user-info">
@@ -142,9 +141,6 @@
                             <span class="status-dot online"></span>
                             Sistema Online
                         </div>
-                        <button class="btn-icon" id="refresh-data" title="Atualizar">
-                            🔄
-                        </button>
                     </div>
                 </div>
 
@@ -192,12 +188,8 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="dashboard-section mt-20">
-                        <div class="section-header">
-                            <h3>Pedidos Recentes</h3>
-                            <button class="btn btn-sm btn-secondary" id="refresh-orders">Atualizar</button>
-                        </div>
+                    <div class="dashboard-section">
+                        <h3>Pedidos Recentes</h3>
                         <div class="table-container">
                             <table class="data-table">
                                 <thead>
@@ -210,32 +202,14 @@
                                         <th>Tempo</th>
                                     </tr>
                                 </thead>
-                                <tbody id="recent-orders-body">
+                                <tbody>
                                     <tr>
-                                        <td colspan="6" class="no-data">
+                                        <td colspan="6" style="text-align: center">
                                             Nenhum pedido realizado hoje
                                         </td>
                                     </tr>
                                 </tbody>
                             </table>
-                        </div>
-                    </div>
-                    
-                    <div class="dashboard-section mt-20">
-                        <div class="section-header">
-                            <h3>Alertas do Sistema</h3>
-                        </div>
-                        <div id="inventory-alerts" class="alerts-container">
-                            <!-- Alertas de estoque serão carregados aqui -->
-                        </div>
-                    </div>
-                    
-                    <div class="dashboard-section mt-20">
-                        <div class="section-header">
-                            <h3>Métricas de Performance</h3>
-                        </div>
-                        <div id="performance-metrics" class="metrics-grid">
-                            <!-- Métricas serão carregadas aqui -->
                         </div>
                     </div>
                 </div>
@@ -245,13 +219,6 @@
                     <div class="tab-header">
                         <h3>💳 PDV - Ponto de Venda</h3>
                         <div class="tab-actions">
-                            <select id="pdv-filter-category">
-                                <option value="all">Todas as Categorias</option>
-                                <option value="Pratos">Pratos</option>
-                                <option value="Bebidas">Bebidas</option>
-                                <option value="Sobremesas">Sobremesas</option>
-                                <option value="Promoções">Promoções</option>
-                            </select>
                             <button type="button" class="btn btn-primary" id="pdv-novo-pedido">
                                 Novo Pedido
                             </button>
@@ -266,17 +233,24 @@
                                 <button type="button" class="category-btn">Sobremesas</button>
                                 <button type="button" class="category-btn">Promoções</button>
                             </div>
-                            <div class="products-grid" id="pdv-products-grid"></div>
+                            <div class="products-grid"></div>
                         </div>
                         <div class="pdv-right">
                             <div class="order-summary">
-                                <div class="order-header">
-                                    <h3>Pedido Atual</h3>
-                                    <span id="order-type-display">Mesa 1</span>
+                                <h3>Pedido Atual</h3>
+                        
+                                <div class="order-config-inline" style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #eee;">
+                                    <div style="display: flex; gap: 8px;">
+                                        <select id="pdv-type-selector" class="form-control" style="flex: 2; height: 35px; font-size: 14px;">
+                                            <option value="table">Mesa</option>
+                                            <option value="counter">Balcão</option>
+                                        </select>
+                                        <input type="number" id="pdv-table-input" class="form-control" placeholder="Nº Mesa" style="flex: 1; height: 35px; font-size: 14px;">
+                                    </div>
+                                    <input type="text" id="pdv-customer-input" class="form-control" placeholder="Nome do Cliente" style="width: 100%; height: 35px; font-size: 14px;">
                                 </div>
-                                <div class="order-items" id="current-order-items">
-                                    <div class="no-items">Nenhum item no pedido</div>
-                                </div>
+                                <div class="order-items" id="current-order-items"></div>
+                                
                                 <div class="order-total">
                                     <div class="total-line">
                                         <span>Subtotal:</span>
@@ -291,12 +265,10 @@
                                         <span id="total">R$ 0,00</span>
                                     </div>
                                 </div>
+                                
                                 <div class="order-actions">
                                     <button type="button" class="btn btn-secondary" id="clear-order">
                                         Limpar
-                                    </button>
-                                    <button type="button" class="btn btn-success" id="add-more-items">
-                                        Adicionar Mais
                                     </button>
                                     <button type="button" class="btn btn-primary" id="finalize-order">
                                         Finalizar Pedido
@@ -312,44 +284,25 @@
                     <div class="tab-header">
                         <h3>📋 Balcão</h3>
                         <div class="tab-actions">
-                            <button type="button" class="btn btn-primary" id="novo-pedido-balcao">
-                                Novo Pedido
-                            </button>
                             <input type="text" id="search-order" placeholder="Buscar pedido..." />
-                            <select id="filter-status-balcao">
-                                <option value="all">Todos os Status</option>
-                                <option value="pending">Pendentes</option>
-                                <option value="preparing">Preparando</option>
-                                <option value="ready">Prontos</option>
-                                <option value="delivered">Entregues</option>
-                            </select>
                         </div>
                     </div>
                     <div class="pedidos-container">
                         <div class="balcao-columns">
                             <div class="balcao-column atendimento-column">
-                                <div class="column-header">
-                                    <h3>Atendimento</h3>
-                                    <span class="column-count" id="count-atendimento">0</span>
-                                </div>
+                                <h3>Atendimento</h3>
                                 <div class="balcao-cards" id="balcao-atendimento">
                                     <div class="no-orders">Nenhum pedido em atendimento</div>
                                 </div>
                             </div>
                             <div class="balcao-column preparando-column">
-                                <div class="column-header">
-                                    <h3>Preparando</h3>
-                                    <span class="column-count" id="count-preparando">0</span>
-                                </div>
+                                <h3>Preparando</h3>
                                 <div class="balcao-cards" id="balcao-preparando">
                                     <div class="no-orders">Nenhum pedido em preparação</div>
                                 </div>
                             </div>
                             <div class="balcao-column pronto-column">
-                                <div class="column-header">
-                                    <h3>Pronto</h3>
-                                    <span class="column-count" id="count-pronto">0</span>
-                                </div>
+                                <h3>Pronto</h3>
                                 <div class="balcao-cards" id="balcao-pronto">
                                     <div class="no-orders">Nenhum pedido pronto</div>
                                 </div>
@@ -361,47 +314,21 @@
                 <!-- Cozinha Tab -->
                 <div class="tab-content" id="cozinha">
                     <div class="cozinha-container">
-                        <div class="cozinha-header">
-                            <h3>👨‍🍳 Cozinha - Controle de Produção</h3>
-                            <div class="cozinha-stats">
-                                <div class="stat-item">
-                                    <span class="stat-label">Pendentes:</span>
-                                    <span class="stat-value" id="cozinha-pendentes">0</span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-label">Preparando:</span>
-                                    <span class="stat-value" id="cozinha-preparando">0</span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-label">Prontos:</span>
-                                    <span class="stat-value" id="cozinha-prontos">0</span>
-                                </div>
-                            </div>
-                        </div>
                         <div class="orders-kanban">
                             <div class="kanban-column">
-                                <div class="kanban-header">
-                                    <h3>Pendentes</h3>
-                                    <span class="kanban-count" id="count-pendentes">0</span>
-                                </div>
+                                <h3>Pendentes</h3>
                                 <div class="kanban-cards" id="pending-orders">
                                     <div class="no-orders">Nenhum pedido pendente</div>
                                 </div>
                             </div>
                             <div class="kanban-column">
-                                <div class="kanban-header">
-                                    <h3>Preparando</h3>
-                                    <span class="kanban-count" id="count-preparando-cozinha">0</span>
-                                </div>
+                                <h3>Preparando</h3>
                                 <div class="kanban-cards" id="preparing-orders">
                                     <div class="no-orders">Nenhum pedido em preparo</div>
                                 </div>
                             </div>
                             <div class="kanban-column">
-                                <div class="kanban-header">
-                                    <h3>Prontos</h3>
-                                    <span class="kanban-count" id="count-prontos-cozinha">0</span>
-                                </div>
+                                <h3>Prontos</h3>
                                 <div class="kanban-cards" id="ready-orders">
                                     <div class="no-orders">Nenhum pedido pronto</div>
                                 </div>
@@ -421,9 +348,6 @@
                                 <option value="ocupada">Apenas Ocupadas</option>
                                 <option value="limpando">Apenas Limpando</option>
                             </select>
-                            <button class="btn btn-primary" id="add-mesa-btn">
-                                + Adicionar Mesa
-                            </button>
                         </div>
                     </div>
                     <div class="mesas-container">
@@ -447,154 +371,311 @@
                         </div>
                         <div class="mesas-grid-header">
                             <h4>Mesas Disponíveis</h4>
-                            <div class="mesas-search">
-                                <input type="text" id="search-mesa" placeholder="Buscar mesa..." />
-                            </div>
                         </div>
                         <div class="mesas-number-grid" id="mesas-number-grid"></div>
                     </div>
                 </div>
                 
-                <!-- Relatórios Tab -->
+                <!-- Relatórios Tab (ATUALIZADO: nova estrutura visual inspirado na imagem) -->
                 <div class="tab-content" id="relatorios">
-                    <div class="relatorios-container">
-                        <div class="report-filters">
-                            <div class="filter-row">
-                                <div class="filter-group">
-                                    <label for="report-period">Período:</label>
-                                    <select id="report-period">
-                                        <option value="today">Hoje</option>
-                                        <option value="yesterday">Ontem</option>
-                                        <option value="week">Esta Semana</option>
-                                        <option value="month">Este Mês</option>
-                                        <option value="custom">Personalizado</option>
-                                    </select>
-                                </div>
-                                <div class="filter-group">
-                                    <label for="report-type">Tipo de Relatório:</label>
-                                    <select id="report-type">
-                                        <option value="sales">Vendas</option>
-                                        <option value="products">Produtos</option>
-                                        <option value="time">Tempo de Atendimento</option>
-                                        <option value="financial">Financeiro</option>
-                                    </select>
-                                </div>
+                    <div class="relatorios-container reports-page">
+                        <div class="section-header">
+                            <h3>Relatório</h3>
+                        </div>
+
+                        <!-- Cards de Resumo -->
+                        <div class="report-cards">
+                            <div class="report-card">
+                                <div class="report-card-title">TOTAL CAIXA</div>
+                                <div class="report-card-amount" id="summary-total">R$ 0,00</div>
+                                <canvas class="sparkline" id="spark-total" width="140" height="36" aria-hidden="true"></canvas>
                             </div>
-                            
-                            <div class="custom-dates-row" id="custom-dates-row">
-                                <div class="filter-group" id="custom-dates-group">
-                                    <label for="date-start">Data Início:</label>
-                                    <input type="date" id="date-start" />
-                                </div>
-                                <div class="filter-group" id="custom-dates-group-end">
-                                    <label for="date-end">Data Fim:</label>
-                                    <input type="date" id="date-end" />
-                                </div>
+                            <div class="report-card">
+                                <div class="report-card-title">DINHEIRO</div>
+                                <div class="report-card-amount amount-cash" id="summary-cash">R$ 0,00</div>
+                                <canvas class="sparkline" id="spark-cash" width="140" height="36" aria-hidden="true"></canvas>
                             </div>
-                            
-                            <div class="filter-actions">
-                                <button type="button" class="btn btn-primary" id="generate-report">
-                                    Gerar Relatório
-                                </button>
-                                <button type="button" class="btn btn-secondary" id="export-report">
-                                    Exportar PDF
-                                </button>
-                                <button type="button" class="btn btn-success" id="print-report">
-                                    Imprimir
-                                </button>
+                            <div class="report-card">
+                                <div class="report-card-title">CARTÃO</div>
+                                <div class="report-card-amount amount-card" id="summary-card">R$ 0,00</div>
+                                <canvas class="sparkline" id="spark-card" width="140" height="36" aria-hidden="true"></canvas>
+                            </div>
+                            <div class="report-card">
+                                <div class="report-card-title">PIX</div>
+                                <div class="report-card-amount amount-pix" id="summary-pix">R$ 0,00</div>
+                                <canvas class="sparkline" id="spark-pix" width="140" height="36" aria-hidden="true"></canvas>
                             </div>
                         </div>
-                        
-                        <div class="report-results" id="report-results-container">
-                            <div class="no-data">
-                                <h4>📊 Relatório de Vendas e Faturamento</h4>
-                                <p>Use os filtros acima para gerar relatórios de vendas.</p>
+
+                        <!-- Botões de geração rápida -->
+                        <div class="report-buttons">
+                            <button class="btn report-btn" id="btn-daily">Gerar relatório de vendas diária</button>
+                            <button class="btn report-btn" id="btn-monthly">Gerar relatório de vendas mensal</button>
+                            <button class="btn report-btn" id="btn-card-total">Gerar relatório de total cartão</button>
+
+                            <button class="btn report-btn" id="btn-weekly">Gerar relatório de vendas semanal</button>
+                            <button class="btn report-btn" id="btn-cash-total">Gerar relatório de total dinheiro</button>
+                            <button class="btn report-btn" id="btn-pix-total">Gerar relatório de total pix</button>
+                        </div>
+
+                        <!-- Área com controles de export / resultado do relatório -->
+                        <div id="report-results-controls" class="report-results-controls" style="display:none;margin-top:12px;">
+                            <!-- botões de export serão injetados aqui -->
+                        </div>
+
+                        <!-- Área onde o relatório detalhado é renderizado -->
+                        <div id="report-results-container" class="report-results" style="margin-top:12px;">
+                            <div class="no-orders" style="text-align: center; padding: 40px">
+                                <h4>Relatório de Vendas e Faturamento</h4>
+                                <p>Use os botões acima ou os filtros para gerar relatórios.</p>
                             </div>
                         </div>
-                        
-                        <div class="backup-section mt-20">
-                            <div class="section-header">
-                                <h4>💾 Backup de Dados</h4>
-                            </div>
+
+                        <div class="backup-section" style="margin-top:18px;">
+                            <h4>Backup de Dados</h4>
                             <div class="backup-actions">
                                 <button type="button" class="btn btn-success" id="export-backup">
-                                    📥 Exportar Backup
+                                    Exportar Backup
                                 </button>
                                 <button type="button" class="btn btn-warning" id="import-backup">
-                                    📤 Importar Backup
+                                    Importar Backup
                                 </button>
-                                <input type="file" id="backup-file" accept=".json" />
-                                <button type="button" class="btn btn-danger" id="reset-system-btn">
-                                    🗑️ Resetar Sistema
-                                </button>
-                            </div>
-                            <div class="backup-info">
-                                <p><strong>Último backup:</strong> <span id="last-backup-date">Nenhum backup realizado</span></p>
-                                <p><strong>Tamanho dos dados:</strong> <span id="data-size">0 KB</span></p>
+                                <input type="file" id="backup-file" accept=".json" style="display: none" />
                             </div>
                         </div>
                     </div>
                 </div>
-
+                <!-- Caixa Tab -->
+                <div class="tab-content" id="caixa">
+                    <div class="caixa-container">
+                        <div class="tab-header">
+                            <h3>💰 Controle de Caixa</h3>
+                            <p style="color: #666; font-size: 0.9rem;">Abertura, fechamento e movimentações do caixa</p>
+                        </div>
+                        <div id="caixa-container"></div>
+                    </div>
+                </div>
                 <!-- Produtos Tab -->
+                <!-- Produtos Tab - LAYOUT OTIMIZADO -->
                 <div class="tab-content" id="produtos">
-                    <div class="produtos-container">
-                        <div class="produtos-header">
-                            <div class="header-left">
-                                <h3>🍕 Gestão de Produtos</h3>
-                                <p class="subtitle">Gerencie seu cardápio e estoque</p>
+                  <div class="produtos-container">
+                    <!-- Cabeçalho -->
+                    <div class="produtos-header">
+                      <h3>📋 Cadastro de Produtos</h3>
+                      <div style="font-size: 0.9rem; color: #666;">
+                        <span id="products-count">0 produtos</span> cadastrados
+                      </div>
+                    </div>
+                    
+                    <!-- Formulário de Cadastro -->
+                    <div class="form-card">
+                      <form id="product-form">
+                        <!-- Seção: Informações Básicas -->
+                        <div class="form-section">
+                          <span class="icon">📋</span>
+                          <h4>Informações do Produto</h4>
+                        </div>
+                
+                        <div class="form-row">
+                          <!-- Nome do Produto -->
+                          <div class="form-group">
+                            <label for="product-name">Nome do Produto *</label>
+                            <input type="text" id="product-name" class="form-control" 
+                                   placeholder="Ex: X-Burger" required>
+                          </div>
+                          
+                          <!-- Descrição -->
+                          <div class="form-group">
+                            <label for="product-description">Descrição *</label>
+                            <input type="text" id="product-description" class="form-control" 
+                                   placeholder="Ex: Pão, carne, queijo, alface, tomate">
+                          </div>
+                        </div>
+                
+                        <div class="form-row">
+                          <!-- Preço -->
+                          <div class="form-group">
+                            <label for="product-price">Preço (R$) *</label>
+                            <input type="text" id="product-price" class="form-control" 
+                                   placeholder="0,00" required>
+                          </div>
+                          
+                          <!-- Categoria -->
+                          <div class="form-group">
+                            <label for="product-category">Categoria *</label>
+                            <select id="product-category" class="form-control" required>
+                              <option value="Lanches">Lanches</option>
+                              <option value="pratos">Pratos</option>
+                              <option value="bebidas">Bebidas</option>
+                              <option value="sobremesas">Sobremesas</option>
+                              <option value="promocoes">Promoções</option>
+                            </select>
+                          </div>
+                        </div>
+                
+                        <!-- Seção: Imagem -->
+                        <div class="form-section">
+                          <span class="icon">📷</span>
+                          <h4>Imagem do Produto</h4>
+                        </div>
+                
+                        <div class="form-row">
+                          <div class="form-group" style="grid-column: span 2;">
+                            <label>Foto do Produto (opcional)</label>
+                            <div class="image-upload-wrapper">
+                              <input type="file" id="product-image" accept="image/*" style="display: none;">
+                              <button type="button" class="btn-upload-image" 
+                                      onclick="document.getElementById('product-image').click()">
+                                <div class="upload-icon">📤</div>
+                                <div class="upload-text">Clique para enviar imagem<br>ou arraste e solte aqui</div>
+                              </button>
+                              <div id="image-preview" style="display: none; margin-top: 15px;">
+                                <img id="preview-img" style="max-width: 180px; border-radius: 8px;">
+                              </div>
                             </div>
-                            <div class="header-right">
-                                <div class="search-products">
-                                    <input type="text" id="search-product" placeholder="Buscar produto..." />
-                                    <select id="filter-category-produto">
-                                        <option value="">Todas Categorias</option>
-                                        <option value="Pratos">Pratos</option>
-                                        <option value="Bebidas">Bebidas</option>
-                                        <option value="Sobremesas">Sobremesas</option>
-                                        <option value="Promoções">Promoções</option>
-                                    </select>
-                                </div>
-                                <button type="button" class="btn btn-primary" id="add-product">
-                                    ➕ Adicionar Produto
-                                </button>
+                          </div>
+                        </div>
+                
+                        <!-- Seção: Detalhes -->
+                        <div class="form-section">
+                          <span class="icon">🔖</span>
+                          <h4>Detalhes Adicionais</h4>
+                        </div>
+                
+                        <div class="form-row">
+                          <!-- SKU -->
+                          <div class="form-group">
+                            <label for="product-sku">SKU / Código</label>
+                            <input type="text" id="product-sku" class="form-control" 
+                                   placeholder="Ex: PRD-001">
+                          </div>
+                        </div>
+                
+                        <!-- Seção: Disponibilidade -->
+                        <div class="form-section">
+                          <span class="icon">📍</span>
+                          <h4>Disponibilidade</h4>
+                        </div>
+                
+                        <div class="form-row checkbox-row">
+                          <!-- Produto Ativo -->
+                          <div class="checkbox-group">
+                            <label class="checkbox-label">
+                              <input type="checkbox" id="product-active" checked>
+                              <span class="checkbox-custom"></span>
+                              Produto Ativo
+                            </label>
+                          </div>
+                
+                          <!-- Opções de disponibilidade -->
+                          <div class="availability-checkboxes">
+                            <h5>Disponível para:</h5>
+                            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                              <label class="checkbox-label">
+                                <input type="checkbox" id="product-salon" checked>
+                                <span class="checkbox-custom"></span>
+                                Salão
+                              </label>
+                              <label class="checkbox-label">
+                                <input type="checkbox" id="product-delivery" checked>
+                                <span class="checkbox-custom"></span>
+                                Delivery
+                              </label>
                             </div>
+                          </div>
+                        </div>
+                
+                        <!-- Botões de Ação -->
+                        <div class="form-actions">
+                          <button type="submit" class="btn-cadastrar">
+                            <span id="form-submit-text">CADASTRAR PRODUTO</span>
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                
+                    <!-- Lista de Produtos Cadastrados -->
+                    <div class="products-list-section">
+                      <h4>📦 Produtos Cadastrados</h4>
+                      <div id="products-list-container"></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="tab-content" id="funcionarios">
+                    <div class="funcionarios-container">
+                        <div class="funcionarios-header">
+                            <h3>👥 Adicionar novo funcionário ao sistema</h3>
                         </div>
                         
-                        <div class="products-list" id="products-list-container">
-                            <div class="no-data">
-                                <p>Nenhum produto cadastrado</p>
-                                <button class="btn btn-primary mt-10" id="add-first-product">
-                                    Adicionar Primeiro Produto
-                                </button>
-                            </div>
+                        <div class="form-card">
+                            <form id="employee-form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="employee-name">Nome</label>
+                                        <input type="text" id="employee-name" class="form-control" placeholder="Nome do funcionário" required>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="employee-email">E-mail</label>
+                                        <input type="email" id="employee-email" class="form-control" placeholder="test@gmail.com">
+                                    </div>
+                                </div>
+                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="employee-phone">Telefone</label>
+                                        <input type="tel" id="employee-phone" class="form-control" placeholder="(81) 99999-0000">
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="employee-role">Cargo</label>
+                                        <select id="employee-role" class="form-control" required>
+                                            <option value="">Selecione o cargo</option>
+                                            <option value="garcom">Garçom</option>
+                                            <option value="caixa">Caixa</option>
+                                            <option value="cozinha">Cozinheiro</option>
+                                            <option value="gestor">Gestor</option>
+                                            <option value="gerente">Gerente</option>
+                                        </select>
+                                    </div>
+                                </div>
+                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="employee-password">Senha</label>
+                                        <div class="password-input-wrapper">
+                                            <input type="password" id="employee-password" class="form-control" placeholder="Senha" required>
+                                            <button type="button" class="toggle-password" data-target="employee-password">
+                                                <span class="eye-icon">👁️</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="employee-confirm-password">Confirmar senha</label>
+                                        <div class="password-input-wrapper">
+                                            <input type="password" id="employee-confirm-password" class="form-control" placeholder="Confirme a senha" required>
+                                            <button type="button" class="toggle-password" data-target="employee-confirm-password">
+                                                <span class="eye-icon">👁️</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-cadastrar">
+                                        CADASTRAR
+                                    </button>
+                                </div>
+                            </form>
                         </div>
-                        
-                        <div class="inventory-summary mt-20">
-                            <div class="section-header">
-                                <h4>📦 Resumo do Estoque</h4>
-                            </div>
-                            <div class="inventory-stats">
-                                <div class="inventory-stat">
-                                    <span class="stat-label">Total de Produtos:</span>
-                                    <span class="stat-value" id="total-products">0</span>
-                                </div>
-                                <div class="inventory-stat">
-                                    <span class="stat-label">Com Estoque Baixo:</span>
-                                    <span class="stat-value" id="low-stock-products">0</span>
-                                </div>
-                                <div class="inventory-stat">
-                                    <span class="stat-label">Esgotados:</span>
-                                    <span class="stat-value" id="out-of-stock-products">0</span>
-                                </div>
-                                <div class="inventory-stat">
-                                    <span class="stat-label">Valor Total em Estoque:</span>
-                                    <span class="stat-value" id="total-inventory-value">R$ 0,00</span>
-                                </div>
-                            </div>
+                
+                        <div class="employees-list-section">
+                            <h4>Funcionários Cadastrados</h4>
+                            <div id="employees-list-container"></div>
                         </div>
                     </div>
-                </div>
+                </div>               
             </div>
         </div>
     </div>
@@ -623,10 +704,6 @@
                     <label for="customer-name">Nome do Cliente (opcional):</label>
                     <input type="text" id="customer-name" placeholder="Nome do cliente" />
                 </div>
-                <div class="form-group">
-                    <label for="order-notes">Observações:</label>
-                    <textarea id="order-notes" rows="3" placeholder="Observações especiais..."></textarea>
-                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" id="cancel-order">Cancelar</button>
@@ -635,238 +712,121 @@
         </div>
     </div>
 
-    <!-- Modal Pagamento -->
-    <div class="modal" id="payment-modal">
-        <div class="modal-content payment-modal">
-            <div class="modal-header">
-                <h3>Processar Pagamento</h3>
-                <span class="close">&times;</span>
-            </div>
-            <div class="modal-body"></div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" id="cancel-payment">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="confirm-payment">Confirmar Pagamento</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Modal Detalhes Mesa -->
-    <div class="modal" id="mesa-details-modal">
+    <div class="modal" id="mesa-details-modal" style="display: none;">
         <div class="modal-content mesa-modal">
             <div class="modal-header">
-                <h3 id="mesa-modal-title">Mesa #</h3>
-                <span class="close">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="mesa-details-container">
-                    <div class="mesa-status-info" id="mesa-status-info">Pedidos em andamento</div>
-                    
-                    <div class="mesa-garcom-info" id="mesa-garcom-section">
-                        <div class="garcom-avatar" id="mesa-garcom-avatar">GS</div>
-                        <div class="garcom-details">
-                            <div class="garcom-name" id="mesa-garcom-name">—</div>
-                            <div class="garcom-role" id="mesa-garcom-role">—</div>
+                <div class="header-content">
+                    <div class="mesa-header-info">
+                        <h3 id="mesa-modal-title">Mesa 2</h3>
+                        <div class="mesa-status-badge" id="mesa-status-badge" style="background: #f39c12; color: white;">
+                            <span class="status-icon">🕒</span>
+                            <span class="status-text">Aguardando preparo</span>
                         </div>
                     </div>
-                    
-                    <div class="mesa-items-list" id="mesa-items-list"></div>
+                    <div class="mesa-info-details">
+                        <div class="info-item">
+                            <span class="info-label">Cliente:</span>
+                            <span class="info-value" id="mesa-cliente-nome">Não informado</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Garçom:</span>
+                            <span class="info-value" id="mesa-garcom">Carlos Silva</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Tempo:</span>
+                            <span class="info-value" id="mesa-tempo">15 min</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Pedido ID:</span>
+                            <span class="info-value" id="mesa-pedido-id">#00042</span>
+                        </div>
+                    </div>
+                </div>
+                <span class="close">×</span>
+            </div>
+            
+            <div class="modal-body">
+                <!-- Seção de itens do pedido -->
+                <div class="mesa-section">
+                    <h4 class="section-title">
+                        <span class="title-icon">🍽️</span>
+                        Itens do Pedido
+                        <span class="items-count" id="mesa-items-count">(0 itens)</span>
+                    </h4>
+                    <div class="mesa-items-container">
+                        <div class="mesa-items-list" id="mesa-items-list">
+                            <div class="no-items-placeholder">
+                                <div class="placeholder-icon">📋</div>
+                                <p class="placeholder-text">Nenhum item no pedido</p>
+                                <p class="placeholder-subtext">Adicione itens usando o botão abaixo</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Seção de resumo financeiro -->
+                <div class="mesa-section">
+                    <h4 class="section-title">
+                        <span class="title-icon">💰</span>
+                        Resumo Financeiro
+                    </h4>
                     <div class="mesa-financial-summary">
                         <div class="summary-line">
-                            <span>Subtotal:</span>
-                            <span id="mesa-subtotal">R$ 0,00</span>
+                            <span class="summary-label">Subtotal:</span>
+                            <span class="summary-value" id="mesa-subtotal">R$ 0.00</span>
                         </div>
                         <div class="summary-line">
-                            <span>Taxa de serviço (10%):</span>
-                            <span id="mesa-taxa-servico">R$ 0,00</span>
+                            <span class="summary-label">Taxa de serviço (10%):</span>
+                            <span class="summary-value" id="mesa-taxa-servico">R$ 0.00</span>
+                        </div>
+                        <div class="summary-line discount" style="display: none;">
+                            <span class="summary-label">Desconto:</span>
+                            <span class="summary-value" id="mesa-desconto">- R$ 0.00</span>
                         </div>
                         <div class="summary-line total">
-                            <span><strong>Total</strong></span>
-                            <span><strong id="mesa-total">R$ 0,00</strong></span>
+                            <span class="summary-label"><strong>Total a pagar:</strong></span>
+                            <span class="summary-value" id="mesa-total"><strong>R$ 0.00</strong></span>
                         </div>
                     </div>
                 </div>
+                
+                <!-- Seção de observações -->
+                <div class="mesa-section">
+                    <h4 class="section-title">
+                        <span class="title-icon">📝</span>
+                        Observações
+                    </h4>
+                    <div class="mesa-observacoes">
+                        <textarea 
+                            id="mesa-observacoes-input" 
+                            class="observacoes-textarea" 
+                            placeholder="Adicione observações sobre o pedido (alergias, preferências, etc.)"
+                            rows="3"
+                        ></textarea>
+                        <button class="btn-observacoes-save" id="salvar-observacoes">Salvar</button>
+                    </div>
+                </div>
             </div>
+            
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" id="add-item-mesa">➕ Adicionar Item</button>
-                <button type="button" class="btn btn-warning" id="edit-mesa-pedido">✏️ Editar Pedido</button>
-                <button type="button" class="btn btn-primary" id="fechar-conta-mesa">💳 Fechar Conta</button>
+                <div class="footer-actions">
+                    <button type="button" class="btn btn-secondary" id="add-item-mesa">
+                        <span class="btn-icon">➕</span>
+                        Adicionar Item
+                    </button>
+                    <button type="button" class="btn btn-primary" id="fechar-conta-mesa">
+                        <span class="btn-icon">💳</span>
+                        Fechar Conta
+                    </button>
+                </div>
             </div>
         </div>
     </div>
-    
-    <!-- Modal Adicionar Produto -->
-    <div class="modal" id="add-product-modal">
-        <!-- Conteúdo será gerado dinamicamente -->
-    </div>
-    
-    <!-- Modal Editar Produto -->
-    <div class="modal" id="edit-product-modal">
-        <!-- Conteúdo será gerado dinamicamente -->
-    </div>
-    
-    <!-- Modal Configurações -->
-    <div class="modal" id="settings-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>⚙️ Configurações do Sistema</h3>
-                <span class="close">&times;</span>
-            </div>
-            <div class="modal-body">
-                <div class="settings-tabs">
-                    <div class="settings-tab active" data-tab="general">Geral</div>
-                    <div class="settings-tab" data-tab="appearance">Aparência</div>
-                    <div class="settings-tab" data-tab="backup">Backup</div>
-                    <div class="settings-tab" data-tab="advanced">Avançado</div>
-                </div>
-                
-                <div class="settings-content" id="settings-general">
-                    <h4>Configurações Gerais</h4>
-                    <div class="form-group">
-                        <label for="setting-tax-rate">Taxa de Serviço (%):</label>
-                        <input type="number" id="setting-tax-rate" min="0" max="50" step="0.1" value="10" />
-                    </div>
-                    <div class="form-group">
-                        <label for="setting-auto-save">
-                            <input type="checkbox" id="setting-auto-save" checked />
-                            Salvar automaticamente
-                        </label>
-                    </div>
-                    <div class="form-group">
-                        <label for="setting-print-receipt">
-                            <input type="checkbox" id="setting-print-receipt" checked />
-                            Imprimir comanda automaticamente
-                        </label>
-                    </div>
-                </div>
-                
-                <div class="settings-content" id="settings-appearance">
-                    <h4>Aparência</h4>
-                    <div class="form-group">
-                        <label for="setting-theme">Tema:</label>
-                        <select id="setting-theme">
-                            <option value="light">Claro</option>
-                            <option value="dark">Escuro</option>
-                            <option value="auto">Automático</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="setting-primary-color">Cor Principal:</label>
-                        <input type="color" id="setting-primary-color" value="#af3a3a" />
-                    </div>
-                </div>
-                
-                <div class="settings-content" id="settings-backup">
-                    <h4>Backup e Restauração</h4>
-                    <p>Faça backup dos seus dados regularmente.</p>
-                    <div class="backup-actions">
-                        <button class="btn btn-success" id="backup-now">Fazer Backup Agora</button>
-                        <button class="btn btn-warning" id="restore-backup-btn">Restaurar Backup</button>
-                    </div>
-                    <div class="backup-history">
-                        <h5>Histórico de Backups</h5>
-                        <div id="backup-list"></div>
-                    </div>
-                </div>
-                
-                <div class="settings-content" id="settings-advanced">
-                    <h4>Configurações Avançadas</h4>
-                    <div class="form-group">
-                        <label for="setting-debug-mode">
-                            <input type="checkbox" id="setting-debug-mode" />
-                            Modo Desenvolvedor
-                        </label>
-                    </div>
-                    <div class="form-group">
-                        <label for="setting-clear-data">
-                            <button class="btn btn-danger" id="clear-all-data">Limpar Todos os Dados</button>
-                        </label>
-                        <small>Esta ação não pode ser desfeita!</small>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" id="cancel-settings">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="save-settings">Salvar Configurações</button>
-            </div>
-        </div>
-    </div>
+    <!-- Carrega html2pdf (jsPDF + html2canvas) via CDN para export PDF "bonito" -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js" referrerpolicy="no-referrer"></script>
 
-    <!-- Modal Confirmação -->
-    <div class="modal" id="confirm-modal">
-        <div class="modal-content confirm-modal">
-            <div class="modal-header">
-                <h3 id="confirm-title">Confirmar ação</h3>
-                <span class="close">&times;</span>
-            </div>
-            <div class="modal-body">
-                <p id="confirm-message">Tem certeza que deseja realizar esta ação?</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" id="confirm-cancel">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="confirm-ok">Confirmar</button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Modal Informação -->
-    <div class="modal" id="info-modal">
-        <div class="modal-content info-modal">
-            <div class="modal-header">
-                <h3 id="info-title">Informação</h3>
-                <span class="close">&times;</span>
-            </div>
-            <div class="modal-body">
-                <p id="info-message"></p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" id="info-ok">OK</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Scripts -->
+    <!-- Carrega script principal como módulo ES6 -->
     <script type="module" src="script/main.js"></script>
-    
-    <!-- Script para gerenciar a tela de loading -->
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const loadingScreen = document.getElementById('loading-screen');
-        const loadingText = loadingScreen.querySelector('.loading-text');
-        const progressBar = loadingScreen.querySelector('.progress-bar');
-        
-        // Simular progresso
-        let progress = 0;
-        const progressInterval = setInterval(() => {
-            progress += Math.random() * 10;
-            if (progress > 90) progress = 90;
-            progressBar.style.width = progress + '%';
-        }, 300);
-        
-        // Quando o sistema estiver inicializado, esconder loading
-        window.addEventListener('systemInitialized', function(event) {
-            clearInterval(progressInterval);
-            progressBar.style.width = '100%';
-            loadingText.textContent = 'Sistema pronto!';
-            
-            setTimeout(() => {
-                loadingScreen.style.opacity = '0';
-                setTimeout(() => {
-                    loadingScreen.style.display = 'none';
-                }, 500);
-            }, 500);
-        });
-        
-        // Se houver erro, mostrar mensagem
-        window.addEventListener('error', function() {
-            clearInterval(progressInterval);
-            loadingText.textContent = 'Erro ao inicializar. Recarregando...';
-            progressBar.style.background = '#e74c3c';
-            
-            setTimeout(() => {
-                window.location.reload();
-            }, 2000);
-        });
-    });
-    </script>
 </body>
 </html>

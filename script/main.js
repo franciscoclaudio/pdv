@@ -1,138 +1,103 @@
-// script/main.js (versão atualizada)
+// ===========================
+// MAIN.JS - Ponto de Entrada Principal
+// Sistema PDV - Restaurantes & Bares
+// ===========================
 
-import systemInitializer from './init.js';
-import { DataManager } from './modules/dataManager.js';
-import { initializeLogin, showMainSystem } from './modules/auth.js';
-import { initializeMesaModal } from './modules/modals.js';
-import { LocalStorageHelper } from './utils/LocalStorageHelper.js';
-import { currentUser } from './utils/constants.js';
-import { NotificationSystem } from './modules/notifications.js';
+import { initializeSystem } from './init.js';
+import { initLogoUpload } from './logo.js';
 
-// Aguardar inicialização do sistema
-window.addEventListener('systemInitialized', async (event) => {
-    console.log(`✅ Sistema pronto (carregado em ${event.detail.loadTime}ms)`);
-    
+/**
+ * Ponto de entrada da aplicação
+ */
+document.addEventListener('DOMContentLoaded', () => {
     try {
-        // Inicializar componentes específicos
-        await initializeComponents();
-        
-        // Verificar se há usuário logado
-        checkUserSession();
-        
-        // Configurar salvamento automático
-        setupAutoSave();
-        
-        console.log("🎉 Sistema completamente inicializado e pronto para uso");
-        
+        // Inicializa o sistema principal
+        initializeSystem();
+
+        // Inicializa o upload/preview da logomarca (chamado aqui para evitar duplicações)
+        initLogoUpload();
     } catch (error) {
-        console.error("❌ Erro na inicialização dos componentes:", error);
-        NotificationSystem.show(
-            "Erro ao inicializar componentes do sistema. Por favor, recarregue a página.",
-            "error"
-        );
+        console.error("❌ Erro crítico na inicialização:", error);
+        
+        // Mostra mensagem de erro para o usuário
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            z-index: 10000;
+            text-align: center;
+            max-width: 500px;
+        `;
+        
+        errorDiv.innerHTML = `
+            <h2 style="color: #e74c3c; margin-bottom: 15px;">
+                ⚠️ Erro ao Iniciar o Sistema
+            </h2>
+            <p style="margin-bottom: 20px;">
+                Ocorreu um erro crítico ao inicializar o sistema. 
+                Por favor, recarregue a página.
+            </p>
+            <button 
+                onclick="location.reload()" 
+                style="
+                    background: #3498db;
+                    color: white;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 8px;
+                    font-size: 16px;
+                    cursor: pointer;
+                "
+            >
+                Recarregar Página
+            </button>
+            <details style="margin-top: 20px; text-align: left;">
+                <summary style="cursor: pointer; color: #666;">
+                    Detalhes técnicos
+                </summary>
+                <pre style="
+                    margin-top: 10px;
+                    padding: 10px;
+                    background: #f5f5f5;
+                    border-radius: 4px;
+                    font-size: 12px;
+                    overflow: auto;
+                ">${error.stack || error.message}</pre>
+            </details>
+        `;
+        
+        document.body.appendChild(errorDiv);
     }
 });
 
-async function initializeComponents() {
-    console.log("🔧 Inicializando componentes...");
-    
-    // Inicializar login
-    initializeLogin();
-    
-    // Inicializar modal de mesa
-    initializeMesaModal();
-    
-    // Configurar preview de logomarca
-    setupLogoPreview();
-    
-    // Carregar dados do sistema
-    DataManager.loadAppData();
-    
-    console.log("✓ Componentes inicializados");
-}
+/**
+ * Tratamento de erros não capturados
+ */
+window.addEventListener('error', (event) => {
+    console.error('❌ Erro não capturado:', event.error);
+});
 
-function setupLogoPreview() {
-    const inputSeletor = document.getElementById("seletorDeImagem");
-    const imagemCarregada = document.getElementById("imagemCarregada");
-    
-    if (inputSeletor && imagemCarregada) {
-        inputSeletor.addEventListener("change", function (event) {
-            const arquivo = event.target.files[0];
-            if (arquivo) {
-                const leitor = new FileReader();
-                leitor.onload = function (e) {
-                    imagemCarregada.src = e.target.result;
-                    imagemCarregada.style.display = "block";
-                    
-                    // Salvar no localStorage
-                    LocalStorageHelper.setItem("logoImage", e.target.result);
-                };
-                leitor.readAsDataURL(arquivo);
-            }
-        });
-        
-        // Carregar imagem salva se existir
-        const savedLogo = LocalStorageHelper.getItem("logoImage");
-        if (savedLogo) {
-            imagemCarregada.src = savedLogo;
-            imagemCarregada.style.display = "block";
-        }
-    }
-}
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('❌ Promise rejeitada não tratada:', event.reason);
+});
 
-function checkUserSession() {
-    const savedUser = LocalStorageHelper.getItem("currentUser");
-    if (savedUser) {
-        try {
-            // Atualizar usuário atual
-            Object.assign(currentUser, savedUser);
-            
-            // Mostrar sistema principal
-            showMainSystem();
-            
-            console.log("👤 Sessão restaurada para:", currentUser.name);
-        } catch (error) {
-            console.error("Erro ao carregar usuário:", error);
-            LocalStorageHelper.removeItem("currentUser");
-        }
-    }
-}
-
-function setupAutoSave() {
-    // Salvar antes de fechar
-    window.addEventListener("beforeunload", function (e) {
-        if (currentUser) {
-            DataManager.saveAppData();
-        }
-    });
-    
-    // Salvar periodicamente
-    setInterval(() => {
-        if (currentUser) {
-            DataManager.saveAppData();
-        }
-    }, 30000); // A cada 30 segundos
-}
-
-// Exportar para debug (apenas desenvolvimento)
-if (process.env.NODE_ENV === 'development') {
-    window.systemInitializer = systemInitializer;
-    window.DataManager = DataManager;
-    window.LocalStorageHelper = LocalStorageHelper;
-    
-    // Adicionar comandos úteis ao console
+/**
+ * Log de informações do sistema (desenvolvimento)
+ */
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     console.log(`
-    🛠️  Comandos de desenvolvimento disponíveis:
-    
-    • systemInitializer.getSystemInfo() - Informações do sistema
-    • systemInitializer.exportDebugInfo() - Exportar info de debug
-    • systemInitializer.resetSystem() - Resetar sistema
-    • DataManager.exportData() - Exportar backup
-    • DataManager.importData(file) - Importar backup
-    
-    • currentUser - Usuário atual
-    • products - Lista de produtos
-    • orders - Lista de pedidos
-    • mesas - Lista de mesas
+╔═══════════════════════════════════════╗
+║   Sistema PDV - Modo Desenvolvimento  ║
+╠═══════════════════════════════════════╣
+║  Versão: 1.0.0                        ║
+║  Autor: Sistema PDV                   ║
+║  Data: ${new Date().toLocaleDateString('pt-BR')}                     ║
+╚═══════════════════════════════════════╝
     `);
 }

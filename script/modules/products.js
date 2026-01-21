@@ -1,687 +1,598 @@
-// script/modules/products.js
+// ===========================
+// PRODUCTS - Gestão de Produtos (ATUALIZADO COM TEXTO CENTRALIZADO)
+// ===========================
 
-import { 
-    products, 
-    inventory, 
-    currentUser 
-} from '../utils/constants.js';
+import { dataManager } from './dataManager.js';
 import { NotificationSystem } from './notifications.js';
-import { DataManager } from './dataManager.js';
-import { DataValidator } from '../utils/validators.js';
-import { formatCurrency } from '../utils/helpers.js';
+import { formatCurrency, generateProductId, renderProductImage } from '../utils/helpers.js';
+import { validateProduct } from '../utils/validators.js';
 
-export function initializeProdutos() {
-    if (!currentUser || !currentUser.permissions.includes("produtos")) {
-        const produtosTab = document.querySelector('.nav-item[data-tab="produtos"]');
-        if (produtosTab) produtosTab.style.display = "none";
-        return;
+
+export class ProductsManager {
+    constructor() {
+        this.initialized = false;
+        this.editingId = null;
+        this.uploadedImage = null;
     }
 
-    const addProductBtn = document.getElementById("add-product");
-    if (addProductBtn) {
-        addProductBtn.addEventListener("click", showAddProductModal);
+    initialize() {
+        if (this.initialized) return;
+        this.initialized = true;
+
+        this.setupEventListeners();
+        this.injectStyles(); // Injeta estilos CSS
+        this.updateView();
     }
 
-    // Configurar busca de produtos
-    const searchInput = document.querySelector("#produtos-container input[type='text']");
-    if (searchInput) {
-        searchInput.addEventListener("input", (e) => {
-            filterProducts(e.target.value);
-        });
-    }
-
-    // Configurar filtro de categorias
-    const categoryFilter = document.querySelector("#produtos-container select");
-    if (categoryFilter) {
-        categoryFilter.addEventListener("change", (e) => {
-            filterByCategory(e.target.value);
-        });
-    }
-
-    updateProdutosView();
-}
-
-export function updateProdutosView() {
-    const productsList = document.getElementById("products-list-container");
-    if (!productsList) return;
-
-    productsList.innerHTML = "";
-
-    if (products.length === 0) {
-        productsList.innerHTML = `
-            <div class="no-orders">
-                <p>Nenhum produto cadastrado</p>
-                <button class="btn btn-primary mt-10" id="add-first-product">
-                    Adicionar Primeiro Produto
-                </button>
-            </div>
-        `;
-        
-        document.getElementById("add-first-product")?.addEventListener("click", showAddProductModal);
-        return;
-    }
-
-    // Agrupar produtos por categoria
-    const productsByCategory = groupProductsByCategory(products);
-
-    Object.entries(productsByCategory).forEach(([category, categoryProducts]) => {
-        const categorySection = document.createElement("div");
-        categorySection.className = "category-section";
-        categorySection.innerHTML = `
-            <h4 class="category-title">${category}</h4>
-            <div class="category-products">
-                ${categoryProducts.map(product => createProductCard(product)).join('')}
-            </div>
-        `;
-        
-        productsList.appendChild(categorySection);
-    });
-
-    // Adicionar contador de produtos
-    const productCount = document.createElement("div");
-    productCount.className = "product-count";
-    productCount.innerHTML = `
-        <p><strong>Total:</strong> ${products.length} produtos cadastrados</p>
-    `;
-    productsList.appendChild(productCount);
-}
-
-function groupProductsByCategory(productsArray) {
-    return productsArray.reduce((acc, product) => {
-        const category = product.category || "Sem Categoria";
-        if (!acc[category]) {
-            acc[category] = [];
+    /**
+     * Injeta estilos CSS para centralizar textos
+     */
+    injectStyles() {
+        // Remove estilos anteriores se existirem
+        const existingStyle = document.getElementById('products-custom-styles');
+        if (existingStyle) {
+            existingStyle.remove();
         }
-        acc[category].push(product);
-        return acc;
-    }, {});
-}
 
-function createProductCard(product) {
-    const inventoryItem = inventory.find(i => i.productId === product.id);
-    const stockStatus = getStockStatus(inventoryItem);
+        const style = document.createElement('style');
+        style.id = 'products-custom-styles';
+        style.textContent = `
+            /* Estilos para centralizar textos na aba de produtos */
+            .grid-cadastro {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                gap: 20px;
+                padding: 20px;
+                width: 100%;
+            }
+
+            .card-item {
+                border: 1px solid #e0e0e0;
+                border-radius: 12px;
+                padding: 20px;
+                background: white;
+                box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+                transition: all 0.3s ease;
+                display: flex;
+                flex-direction: column;
+                align-items: center; /* Centraliza horizontalmente */
+                text-align: center; /* Centraliza texto */
+                height: 100%;
+            }
+
+            .card-item:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+                border-color: #3498db;
+            }
+
+            .card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                width: 100%;
+                margin-bottom: 15px;
+            }
+
+            .card-badge {
+                background: #3498db;
+                color: white;
+                padding: 4px 12px;
+                border-radius: 20px;
+                font-size: 0.8rem;
+                font-weight: 500;
+            }
+
+            .actions {
+                display: flex;
+                gap: 8px;
+            }
+
+            .btn-icon {
+                background: none;
+                border: none;
+                cursor: pointer;
+                font-size: 1.2rem;
+                padding: 6px;
+                border-radius: 50%;
+                transition: all 0.2s ease;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 36px;
+                height: 36px;
+            }
+
+            .btn-icon:hover {
+                background: #f5f5f5;
+                transform: scale(1.1);
+            }
+
+            .btn-icon.danger:hover {
+                background: #ffebee;
+                color: #e74c3c;
+            }
+
+            .card-item h4 {
+                margin: 0 0 10px 0;
+                font-size: 1.2rem;
+                color: #2c3e50;
+                width: 100%;
+                text-align: center;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 8px;
+            }
+
+            /* Status badge dentro do h4 */
+            .card-item h4 span {
+                margin-left: 0;
+                margin-top: 4px;
+            }
+
+            .card-item p {
+                margin: 8px 0;
+                width: 100%;
+                text-align: center;
+                line-height: 1.5;
+            }
+
+            /* Container da imagem centralizada */
+            .product-image-container {
+                width: 160px;
+                height: 160px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 15px auto;
+                overflow: hidden;
+                border-radius: 10px;
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            }
+
+            .product-image-container img {
+                max-width: 100%;
+                max-height: 100%;
+                object-fit: contain;
+            }
+
+            .product-image-container .image-placeholder {
+                font-size: 3.5rem;
+                color: #95a5a6;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                height: 100%;
+            }
+
+            .price {
+                font-size: 1.4rem;
+                font-weight: bold;
+                color: #27ae60;
+                margin: 15px 0;
+                background: #f8fff8;
+                padding: 10px 20px;
+                border-radius: 8px;
+                display: inline-block;
+            }
+
+            /* Textos de descrição */
+            .card-item p[style*="color: #666"] {
+                color: #666 !important;
+                font-size: 0.95rem !important;
+                margin: 10px 0 !important;
+                text-align: center !important;
+                width: 100% !important;
+                line-height: 1.4 !important;
+                min-height: 40px;
+            }
+
+            /* Texto SKU */
+            .card-item p[style*="color: #999"] {
+                color: #999 !important;
+                font-size: 0.85rem !important;
+                margin: 5px 0 !important;
+                text-align: center !important;
+                width: 100% !important;
+                font-style: italic;
+            }
+
+            /* Mensagem de nenhum produto */
+            .no-data {
+                grid-column: 1 / -1;
+                text-align: center;
+                padding: 60px 20px;
+                color: #7f8c8d;
+                font-size: 1.2rem;
+                background: #f8f9fa;
+                border-radius: 12px;
+                margin: 20px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+
+            /* Responsividade */
+            @media (max-width: 1024px) {
+                .grid-cadastro {
+                    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                    gap: 16px;
+                    padding: 16px;
+                }
+                
+                .product-image-container {
+                    width: 140px;
+                    height: 140px;
+                }
+            }
+
+            @media (max-width: 768px) {
+                .grid-cadastro {
+                    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                    gap: 14px;
+                    padding: 14px;
+                }
+                
+                .card-item {
+                    padding: 16px;
+                }
+                
+                .product-image-container {
+                    width: 120px;
+                    height: 120px;
+                }
+                
+                .card-item h4 {
+                    font-size: 1.1rem;
+                }
+                
+                .price {
+                    font-size: 1.2rem;
+                }
+            }
+
+            @media (max-width: 480px) {
+                .grid-cadastro {
+                    grid-template-columns: 1fr;
+                    gap: 12px;
+                    padding: 12px;
+                }
+                
+                .card-item {
+                    padding: 14px;
+                }
+                
+                .product-image-container {
+                    width: 100px;
+                    height: 100px;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    setupEventListeners() {
+        const form = document.getElementById("product-form");
+        if (form) {
+            form.addEventListener("submit", (e) => {
+                e.preventDefault();
+                this.handleSubmit();
+            });
+        }
+
+        // Upload de imagem
+        const imageInput = document.getElementById("product-image");
+        if (imageInput) {
+            imageInput.addEventListener("change", (e) => {
+                this.handleImageUpload(e);
+            });
+        }
+
+        // Formatação de preço
+        const priceInput = document.getElementById("product-price");
+        if (priceInput) {
+            priceInput.addEventListener("input", (e) => {
+                this.formatPriceInput(e);
+            });
+        }
+    }
+
+    handleImageUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            NotificationSystem.error("Por favor, selecione uma imagem válida!");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            this.uploadedImage = e.target.result;
+            
+            const preview = document.getElementById("image-preview");
+            const previewImg = document.getElementById("preview-img");
+            
+            if (preview && previewImg) {
+                previewImg.src = this.uploadedImage;
+                preview.style.display = "block";
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+
+    formatPriceInput(event) {
+        let value = event.target.value.replace(/\D/g, '');
+        
+        if (value.length === 0) {
+            event.target.value = '';
+            return;
+        }
+
+        value = (parseInt(value) / 100).toFixed(2);
+        event.target.value = value.replace('.', ',');
+    }
+
+    handleSubmit() {
+        const name = document.getElementById("product-name").value.trim();
+        const description = document.getElementById("product-description").value.trim();
+        const priceStr = document.getElementById("product-price").value.replace(',', '.');
+        const category = document.getElementById("product-category").value || 'Lanches';
+        const sku = document.getElementById("product-sku").value.trim();
+        const active = document.getElementById("product-active").checked;
+        const salon = document.getElementById("product-salon").checked;
+        const delivery = document.getElementById("product-delivery").checked;
+
+        // Validações
+        if (!name) {
+            NotificationSystem.error("Nome do produto é obrigatório!");
+            return;
+        }
+
+        if (!description) {
+            NotificationSystem.error("Descrição é obrigatória!");
+            return;
+        }
+
+        const price = parseFloat(priceStr);
+        if (isNaN(price) || price <= 0) {
+            NotificationSystem.error("Preço inválido!");
+            return;
+        }
+
+        const productData = {
+            name,
+            description,
+            price,
+            category,
+            sku: sku || this.generateSKU(),
+            image: this.uploadedImage || "📦",
+            active,
+            availableFor: {
+                salon,
+                delivery
+            }
+        };
+
+        if (this.editingId) {
+            this.updateProduct(this.editingId, productData);
+        } else {
+            this.addProduct(productData);
+        }
+    }
+
+    generateSKU() {
+        return 'PRD-' + Date.now().toString().slice(-6);
+    }
+
+    addProduct(productData) {
+        const newProduct = {
+            id: generateProductId(dataManager.products),
+            ...productData,
+            createdAt: new Date().toISOString()
+        };
+
+        const validationErrors = validateProduct(newProduct);
+        if (validationErrors.length > 0) {
+            NotificationSystem.error(validationErrors[0]);
+            return;
+        }
+
+        dataManager.products.push(newProduct);
+        dataManager.saveAppData();
+        
+        this.clearForm();
+        this.updateView();
+        
+        // NOTIFICAÇÃO PARA O PDV ATUALIZAR
+        document.dispatchEvent(new CustomEvent('productListUpdated', {
+            detail: { 
+                action: 'added',
+                product: newProduct,
+                allProducts: dataManager.products
+            }
+        }));
+
+        NotificationSystem.success(`Produto "${newProduct.name}" cadastrado com sucesso!`);
+    }
+
+    updateProduct(id, productData) {
+        const product = dataManager.products.find(p => p.id === id);
+        if (!product) {
+            NotificationSystem.error("Produto não encontrado!");
+            return;
+        }
+
+        Object.assign(product, productData);
+        product.updatedAt = new Date().toISOString();
+
+        const validationErrors = validateProduct(product);
+        if (validationErrors.length > 0) {
+            NotificationSystem.error(validationErrors[0]);
+            return;
+        }
+
+        dataManager.saveAppData();
+        
+        this.clearForm();
+        this.editingId = null;
+        this.updateView();
+
+        // NOTIFICAÇÃO PARA O PDV ATUALIZAR
+        document.dispatchEvent(new CustomEvent('productListUpdated', {
+            detail: { 
+                action: 'updated',
+                product: product,
+                allProducts: dataManager.products
+            }
+        }));
+
+        NotificationSystem.success("Produto atualizado com sucesso!");
+    }
+
+    editProduct(productId) {
+        const product = dataManager.products.find(p => p.id === productId);
+        if (!product) {
+            NotificationSystem.error("Produto não encontrado!");
+            return;
+        }
+
+        document.getElementById("product-name").value = product.name;
+        document.getElementById("product-description").value = product.description || '';
+        document.getElementById("product-price").value = product.price.toFixed(2).replace('.', ',');
+        document.getElementById("product-category").value = product.category || 'Lanches';
+        document.getElementById("product-sku").value = product.sku || '';
+        document.getElementById("product-active").checked = product.active !== false;
+        document.getElementById("product-salon").checked = product.availableFor?.salon !== false;
+        document.getElementById("product-delivery").checked = product.availableFor?.delivery !== false;
+
+        if (typeof product.image === 'string' && product.image.startsWith('data:image')) {
+            this.uploadedImage = product.image;
+            const preview = document.getElementById("image-preview");
+            const previewImg = document.getElementById("preview-img");
+            
+            if (preview && previewImg) {
+                previewImg.src = this.uploadedImage;
+                preview.style.display = "block";
+            }
+        }
+
+        this.editingId = productId;
+
+        // Scroll para o formulário
+        document.getElementById("product-form").scrollIntoView({ behavior: 'smooth' });
+    }
+
+    deleteProduct(productId) {
+        const product = dataManager.products.find(p => p.id === productId);
+        if (!product) {
+            NotificationSystem.error("Produto não encontrado!");
+            return;
+        }
+
+        NotificationSystem.confirm(
+            `Deseja realmente excluir "${product.name}"?`,
+            "Excluir",
+            "Cancelar"
+        ).then((confirmed) => {
+            if (confirmed) {
+                const index = dataManager.products.findIndex(p => p.id === productId);
+                if (index !== -1) {
+                    dataManager.products.splice(index, 1);
+                    dataManager.saveAppData();
+                    this.updateView();
+
+                    // NOTIFICAÇÃO PARA O PDV ATUALIZAR
+                    document.dispatchEvent(new CustomEvent('productListUpdated', {
+                        detail: { 
+                            action: 'deleted',
+                            productId: productId,
+                            allProducts: dataManager.products
+                        }
+                    }));
+
+                    NotificationSystem.success("Produto excluído com sucesso!");
+                }
+            }
+        });
+    }
+
+    clearForm() {
+        document.getElementById("product-form").reset();
+        this.editingId = null;
+        this.uploadedImage = null;
+        
+        const preview = document.getElementById("image-preview");
+        if (preview) {
+            preview.style.display = "none";
+        }
+    }
+
+    /**
+     * Atualiza visualização com cards
+     */
+    updateView() {
+        const container = document.getElementById("products-list-container");
+        if (!container) return;
     
-    return `
-        <div class="product-card" data-id="${product.id}">
-            <div class="product-card-header">
-                <div class="product-image">${product.image || "📦"}</div>
-                <div class="product-actions">
-                    <button class="btn-icon edit-product" data-id="${product.id}" title="Editar">
-                        ✏️
-                    </button>
-                    <button class="btn-icon delete-product" data-id="${product.id}" title="Excluir">
-                        🗑️
-                    </button>
+        container.innerHTML = "";
+        container.className = "grid-cadastro";
+    
+        if (dataManager.products.length === 0) {
+            container.innerHTML = '<div class="no-data">Nenhum produto cadastrado.</div>';
+            return;
+        }
+    
+        dataManager.products.forEach(product => {
+            const card = document.createElement("div");
+            card.className = "card-item";
+            
+            // USANDO A MESMA FUNÇÃO
+            const imageHtml = renderProductImage(product.image, product.name);
+            
+            const statusBadge = product.active !== false ? 
+                '<span style="background: #27ae60; color: white; padding: 2px 8px; border-radius: 999px; font-size: 0.7rem;">Ativo</span>' :
+                '<span style="background: #95a5a6; color: white; padding: 2px 8px; border-radius: 999px; font-size: 0.7rem;">Inativo</span>';
+            
+            card.innerHTML = `
+                <div class="card-header">
+                    <span class="card-badge">${product.category || 'Sem Categoria'}</span>
+                    <div class="actions">
+                        <button class="btn-icon" data-id="${product.id}" data-action="edit" title="Editar">
+                            ✏️
+                        </button>
+                        <button class="btn-icon danger" data-id="${product.id}" data-action="delete" title="Excluir">
+                            🗑️
+                        </button>
+                    </div>
                 </div>
-            </div>
-            <div class="product-card-body">
-                <h5 class="product-name">${product.name}</h5>
-                <p class="product-category">${product.category}</p>
-                <div class="product-price">${formatCurrency(product.price)}</div>
-                
-                ${inventoryItem ? `
-                    <div class="product-inventory ${stockStatus.class}">
-                        <span class="inventory-label">Estoque:</span>
-                        <span class="inventory-value">
-                            ${inventoryItem.currentStock} unidades
-                            ${inventoryItem.minStock ? `(mín: ${inventoryItem.minStock})` : ''}
-                        </span>
-                    </div>
-                ` : `
-                    <div class="product-inventory no-inventory">
-                        <span>Controle de estoque não configurado</span>
-                    </div>
-                `}
-                
-                ${product.description ? `
-                    <p class="product-description">${product.description}</p>
-                ` : ''}
-            </div>
-            <div class="product-card-footer">
-                <button class="btn btn-sm btn-outline edit-inventory" data-id="${product.id}">
-                    ${inventoryItem ? 'Gerenciar Estoque' : 'Configurar Estoque'}
-                </button>
-            </div>
-        </div>
-    `;
-}
-
-function getStockStatus(inventoryItem) {
-    if (!inventoryItem) return { class: 'no-stock', text: 'Sem estoque' };
-    
-    if (inventoryItem.currentStock === 0) {
-        return { class: 'out-of-stock', text: 'Esgotado' };
-    }
-    
-    if (inventoryItem.currentStock <= inventoryItem.minStock) {
-        return { class: 'low-stock', text: 'Estoque Baixo' };
-    }
-    
-    return { class: 'in-stock', text: 'Em Estoque' };
-}
-
-export function showAddProductModal() {
-    const modal = document.createElement("div");
-    modal.className = "modal active";
-    modal.id = "add-product-modal";
-    
-    modal.innerHTML = `
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>➕ Adicionar Novo Produto</h3>
-                <span class="close">&times;</span>
-            </div>
-            <div class="modal-body">
-                <form id="product-form">
-                    <div class="form-group">
-                        <label for="product-name">Nome do Produto *</label>
-                        <input type="text" id="product-name" required 
-                               placeholder="Ex: Pizza Margherita">
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="product-price">Preço (R$) *</label>
-                            <input type="number" id="product-price" step="0.01" min="0" required 
-                                   placeholder="29.90">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="product-category">Categoria *</label>
-                            <select id="product-category" required>
-                                <option value="">Selecione...</option>
-                                <option value="Pratos">Pratos</option>
-                                <option value="Bebidas">Bebidas</option>
-                                <option value="Sobremesas">Sobremesas</option>
-                                <option value="Promoções">Promoções</option>
-                                <option value="Acompanhamentos">Acompanhamentos</option>
-                                <option value="Outros">Outros</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="product-image">Ícone/Emoji</label>
-                        <input type="text" id="product-image" 
-                               placeholder="🍕, 🍔, 🥤, etc.">
-                        <small>Use emojis ou texto para representar o produto</small>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="product-description">Descrição (opcional)</label>
-                        <textarea id="product-description" rows="3" 
-                                  placeholder="Descrição detalhada do produto..."></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="setup-inventory">
-                            Configurar controle de estoque
-                        </label>
-                    </div>
-                    
-                    <div id="inventory-fields" style="display: none;">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="initial-stock">Estoque Inicial</label>
-                                <input type="number" id="initial-stock" min="0" value="0">
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="min-stock">Estoque Mínimo</label>
-                                <input type="number" id="min-stock" min="0" value="5">
-                                <small>Alerta quando atingir este nível</small>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" id="cancel-product">
-                    Cancelar
-                </button>
-                <button type="button" class="btn btn-primary" id="save-product">
-                    Salvar Produto
-                </button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    // Configurar eventos
-    const closeBtn = modal.querySelector(".close");
-    const cancelBtn = modal.querySelector("#cancel-product");
-    const saveBtn = modal.querySelector("#save-product");
-    const setupInventory = modal.querySelector("#setup-inventory");
-    const inventoryFields = modal.querySelector("#inventory-fields");
-    
-    setupInventory.addEventListener("change", function() {
-        inventoryFields.style.display = this.checked ? "block" : "none";
-    });
-    
-    function closeModal() {
-        modal.classList.remove("active");
-        setTimeout(() => {
-            if (modal.parentNode) {
-                modal.parentNode.removeChild(modal);
-            }
-        }, 300);
-    }
-    
-    closeBtn.addEventListener("click", closeModal);
-    cancelBtn.addEventListener("click", closeModal);
-    
-    saveBtn.addEventListener("click", saveProduct);
-    
-    // Fechar ao clicar fora
-    modal.addEventListener("click", function(e) {
-        if (e.target === modal) {
-            closeModal();
-        }
-    });
-    
-    // Fechar com ESC
-    document.addEventListener("keydown", function escHandler(e) {
-        if (e.key === "Escape" && modal.classList.contains("active")) {
-            closeModal();
-            document.removeEventListener("keydown", escHandler);
-        }
-    });
-}
-
-function saveProduct() {
-    const name = document.getElementById("product-name").value.trim();
-    const price = parseFloat(document.getElementById("product-price").value);
-    const category = document.getElementById("product-category").value;
-    const image = document.getElementById("product-image").value.trim() || "📦";
-    const description = document.getElementById("product-description").value.trim();
-    const setupInventory = document.getElementById("setup-inventory").checked;
-    const initialStock = parseInt(document.getElementById("initial-stock")?.value || "0");
-    const minStock = parseInt(document.getElementById("min-stock")?.value || "5");
-    
-    // Validar dados
-    const product = { name, price, category, image, description };
-    const errors = DataValidator.validateProduct(product);
-    
-    if (errors.length > 0) {
-        NotificationSystem.show(errors[0], "error");
-        return;
-    }
-    
-    // Gerar ID
-    const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
-    
-    // Adicionar produto
-    const newProduct = {
-        id: newId,
-        ...product
-    };
-    
-    products.push(newProduct);
-    
-    // Configurar estoque se solicitado
-    if (setupInventory) {
-        inventory.push({
-            productId: newId,
-            productName: name,
-            currentStock: initialStock,
-            minStock: minStock,
-            alert: initialStock <= minStock,
-            lastUpdated: new Date().toISOString()
-        });
-    }
-    
-    // Salvar dados
-    DataManager.saveAppData();
-    
-    // Atualizar view
-    updateProdutosView();
-    
-    // Fechar modal
-    const modal = document.getElementById("add-product-modal");
-    if (modal) {
-        modal.classList.remove("active");
-        setTimeout(() => {
-            if (modal.parentNode) {
-                modal.parentNode.removeChild(modal);
-            }
-        }, 300);
-    }
-    
-    NotificationSystem.show(`Produto "${name}" adicionado com sucesso!`, "success");
-}
-
-export function editProduct(productId) {
-    const product = products.find(p => p.id === productId);
-    if (!product) {
-        NotificationSystem.show("Produto não encontrado", "error");
-        return;
-    }
-    
-    const modal = document.createElement("div");
-    modal.className = "modal active";
-    modal.id = "edit-product-modal";
-    
-    const inventoryItem = inventory.find(i => i.productId === productId);
-    
-    modal.innerHTML = `
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>✏️ Editar Produto</h3>
-                <span class="close">&times;</span>
-            </div>
-            <div class="modal-body">
-                <form id="edit-product-form">
-                    <div class="form-group">
-                        <label for="edit-product-name">Nome do Produto</label>
-                        <input type="text" id="edit-product-name" value="${product.name}" required>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="edit-product-price">Preço (R$)</label>
-                            <input type="number" id="edit-product-price" step="0.01" min="0" 
-                                   value="${product.price}" required>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="edit-product-category">Categoria</label>
-                            <select id="edit-product-category" required>
-                                <option value="">Selecione...</option>
-                                <option value="Pratos" ${product.category === 'Pratos' ? 'selected' : ''}>Pratos</option>
-                                <option value="Bebidas" ${product.category === 'Bebidas' ? 'selected' : ''}>Bebidas</option>
-                                <option value="Sobremesas" ${product.category === 'Sobremesas' ? 'selected' : ''}>Sobremesas</option>
-                                <option value="Promoções" ${product.category === 'Promoções' ? 'selected' : ''}>Promoções</option>
-                                <option value="Acompanhamentos" ${product.category === 'Acompanhamentos' ? 'selected' : ''}>Acompanhamentos</option>
-                                <option value="Outros" ${product.category === 'Outros' ? 'selected' : ''}>Outros</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="edit-product-image">Ícone/Emoji</label>
-                        <input type="text" id="edit-product-image" value="${product.image || ''}">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="edit-product-description">Descrição</label>
-                        <textarea id="edit-product-description" rows="3">${product.description || ''}</textarea>
-                    </div>
-                    
-                    ${inventoryItem ? `
-                        <div class="inventory-info">
-                            <h4>📦 Controle de Estoque</h4>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="edit-current-stock">Estoque Atual</label>
-                                    <input type="number" id="edit-current-stock" 
-                                           value="${inventoryItem.currentStock}" min="0">
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="edit-min-stock">Estoque Mínimo</label>
-                                    <input type="number" id="edit-min-stock" 
-                                           value="${inventoryItem.minStock || 5}" min="0">
-                                </div>
-                            </div>
-                        </div>
-                    ` : `
-                        <div class="form-group">
-                            <label>
-                                <input type="checkbox" id="add-inventory">
-                                Adicionar controle de estoque
-                            </label>
-                        </div>
-                        
-                        <div id="add-inventory-fields" style="display: none;">
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label for="add-initial-stock">Estoque Inicial</label>
-                                    <input type="number" id="add-initial-stock" min="0" value="0">
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="add-min-stock">Estoque Mínimo</label>
-                                    <input type="number" id="add-min-stock" min="0" value="5">
-                                </div>
-                            </div>
-                        </div>
-                    `}
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" id="cancel-edit">
-                    Cancelar
-                </button>
-                <button type="button" class="btn btn-primary" id="update-product">
-                    Atualizar Produto
-                </button>
-            </div>
-        </div>
-    `;
-    
-    document.body.appendChild(modal);
-    
-    // Configurar eventos
-    const closeBtn = modal.querySelector(".close");
-    const cancelBtn = modal.querySelector("#cancel-edit");
-    const updateBtn = modal.querySelector("#update-product");
-    const addInventory = modal.querySelector("#add-inventory");
-    const addInventoryFields = modal.querySelector("#add-inventory-fields");
-    
-    if (addInventory) {
-        addInventory.addEventListener("change", function() {
-            addInventoryFields.style.display = this.checked ? "block" : "none";
-        });
-    }
-    
-    function closeModal() {
-        modal.classList.remove("active");
-        setTimeout(() => {
-            if (modal.parentNode) {
-                modal.parentNode.removeChild(modal);
-            }
-        }, 300);
-    }
-    
-    closeBtn.addEventListener("click", closeModal);
-    cancelBtn.addEventListener("click", closeModal);
-    
-    updateBtn.addEventListener("click", () => updateProduct(productId));
-    
-    // Fechar ao clicar fora
-    modal.addEventListener("click", function(e) {
-        if (e.target === modal) {
-            closeModal();
-        }
-    });
-}
-
-function updateProduct(productId) {
-    const productIndex = products.findIndex(p => p.id === productId);
-    if (productIndex === -1) {
-        NotificationSystem.show("Produto não encontrado", "error");
-        return;
-    }
-    
-    const name = document.getElementById("edit-product-name").value.trim();
-    const price = parseFloat(document.getElementById("edit-product-price").value);
-    const category = document.getElementById("edit-product-category").value;
-    const image = document.getElementById("edit-product-image").value.trim() || "📦";
-    const description = document.getElementById("edit-product-description").value.trim();
-    
-    // Validar dados
-    const product = { name, price, category, image, description };
-    const errors = DataValidator.validateProduct(product);
-    
-    if (errors.length > 0) {
-        NotificationSystem.show(errors[0], "error");
-        return;
-    }
-    
-    // Atualizar produto
-    products[productIndex] = {
-        ...products[productIndex],
-        ...product
-    };
-    
-    // Atualizar estoque se existir ou se for para adicionar
-    const inventoryIndex = inventory.findIndex(i => i.productId === productId);
-    const currentStock = document.getElementById("edit-current-stock");
-    const minStock = document.getElementById("edit-min-stock");
-    const addInventory = document.getElementById("add-inventory");
-    
-    if (currentStock && minStock) {
-        // Atualizar estoque existente
-        if (inventoryIndex !== -1) {
-            inventory[inventoryIndex] = {
-                ...inventory[inventoryIndex],
-                currentStock: parseInt(currentStock.value) || 0,
-                minStock: parseInt(minStock.value) || 5,
-                alert: parseInt(currentStock.value) <= parseInt(minStock.value),
-                lastUpdated: new Date().toISOString()
-            };
-        }
-    } else if (addInventory && addInventory.checked) {
-        // Adicionar novo controle de estoque
-        const initialStock = parseInt(document.getElementById("add-initial-stock").value) || 0;
-        const newMinStock = parseInt(document.getElementById("add-min-stock").value) || 5;
-        
-        inventory.push({
-            productId: productId,
-            productName: name,
-            currentStock: initialStock,
-            minStock: newMinStock,
-            alert: initialStock <= newMinStock,
-            lastUpdated: new Date().toISOString()
-        });
-    }
-    
-    // Salvar dados
-    DataManager.saveAppData();
-    
-    // Atualizar view
-    updateProdutosView();
-    
-    // Fechar modal
-    const modal = document.getElementById("edit-product-modal");
-    if (modal) {
-        modal.classList.remove("active");
-        setTimeout(() => {
-            if (modal.parentNode) {
-                modal.parentNode.removeChild(modal);
-            }
-        }, 300);
-    }
-    
-    NotificationSystem.show(`Produto "${name}" atualizado com sucesso!`, "success");
-}
-
-export function deleteProduct(productId) {
-    const product = products.find(p => p.id === productId);
-    if (!product) {
-        NotificationSystem.show("Produto não encontrado", "error");
-        return;
-    }
-    
-    NotificationSystem.confirm(
-        `Deseja excluir o produto "${product.name}"? Esta ação não pode ser desfeita.`,
-        "Excluir",
-        "Cancelar"
-    ).then((confirmed) => {
-        if (confirmed) {
-            // Remover produto
-            const productIndex = products.findIndex(p => p.id === productId);
-            if (productIndex !== -1) {
-                products.splice(productIndex, 1);
+                <h4>${product.name}<br>${statusBadge}</h4>
+                <p>${product.description || ''}</p>
+                <div class="product-image-container">
+                    ${imageHtml}
+                </div>
+                <p class="price">R$ ${product.price.toFixed(2)}</p>
+                ${product.sku ? `<p>SKU: ${product.sku}</p>` : ''}
+            `;
+            
+            // Event listeners
+            const editBtn = card.querySelector('[data-action="edit"]');
+            const deleteBtn = card.querySelector('[data-action="delete"]');
+            
+            if (editBtn) {
+                editBtn.addEventListener('click', () => this.editProduct(product.id));
             }
             
-            // Remover estoque relacionado
-            const inventoryIndex = inventory.findIndex(i => i.productId === productId);
-            if (inventoryIndex !== -1) {
-                inventory.splice(inventoryIndex, 1);
+            if (deleteBtn) {
+                deleteBtn.addEventListener('click', () => this.deleteProduct(product.id));
             }
             
-            DataManager.saveAppData();
-            updateProdutosView();
-            
-            NotificationSystem.show("Produto excluído com sucesso!", "success");
-        }
-    });
+            container.appendChild(card);
+        });
+    }
 }
 
-function filterProducts(searchTerm) {
-    const searchLower = searchTerm.toLowerCase();
-    const filtered = products.filter(product => 
-        product.name.toLowerCase().includes(searchLower) ||
-        product.category.toLowerCase().includes(searchLower) ||
-        product.description?.toLowerCase().includes(searchLower)
-    );
-    
-    displayFilteredProducts(filtered);
-}
-
-function filterByCategory(category) {
-    if (!category) {
-        updateProdutosView();
-        return;
-    }
-    
-    const filtered = products.filter(product => product.category === category);
-    displayFilteredProducts(filtered);
-}
-
-function displayFilteredProducts(filteredProducts) {
-    const productsList = document.getElementById("products-list-container");
-    if (!productsList) return;
-    
-    if (filteredProducts.length === 0) {
-        productsList.innerHTML = `
-            <div class="no-orders">
-                <p>Nenhum produto encontrado</p>
-            </div>
-        `;
-        return;
-    }
-    
-    productsList.innerHTML = "";
-    
-    // Agrupar por categoria
-    const productsByCategory = groupProductsByCategory(filteredProducts);
-    
-    Object.entries(productsByCategory).forEach(([category, categoryProducts]) => {
-        const categorySection = document.createElement("div");
-        categorySection.className = "category-section";
-        categorySection.innerHTML = `
-            <h4 class="category-title">${category} (${categoryProducts.length})</h4>
-            <div class="category-products">
-                ${categoryProducts.map(product => createProductCard(product)).join('')}
-            </div>
-        `;
-        
-        productsList.appendChild(categorySection);
-    });
-}
-
-// Configurar event listeners para ações de produto
-document.addEventListener('click', function(e) {
-    if (e.target.closest('.edit-product')) {
-        const productId = parseInt(e.target.closest('.edit-product').dataset.id);
-        editProduct(productId);
-    }
-    
-    if (e.target.closest('.delete-product')) {
-        const productId = parseInt(e.target.closest('.delete-product').dataset.id);
-        deleteProduct(productId);
-    }
-    
-    if (e.target.closest('.edit-inventory')) {
-        const productId = parseInt(e.target.closest('.edit-inventory').dataset.id);
-        editProductInventory(productId);
-    }
-});
-
-function editProductInventory(productId) {
-    editProduct(productId); // Reutiliza a mesma função de edição
-}
+export const productsManager = new ProductsManager();

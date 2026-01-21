@@ -1,186 +1,238 @@
-// script/modules/navigation.js
+// ===========================
+// NAVIGATION - Navegação e Tabs (ATUALIZADO)
+// ===========================
 
-import { currentUser } from '../utils/constants.js';
+import { getTabDisplayName } from '../utils/helpers.js';
 import { NotificationSystem } from './notifications.js';
-import { loadPDVProducts, updateOrderSummary } from './pdv.js';
-import { updateOrdersView } from './orders.js';
-import { updateMesasView } from './tables.js';
-import { updateCozinhaView } from './kitchen.js';
-import { updateDashboard } from './dashboard.js';
-import { updateRelatoriosView } from './reports.js';
-import { updateProdutosView } from './products.js';
+import { authManager } from './auth.js';
 
-export function initializeNavigation() {
-    const navItems = document.querySelectorAll(".nav-item:not(.dropdown)");
+export class NavigationManager {
+    constructor() {
+        this.currentTab = 'dashboard';
+        this.dropdownsInitialized = false;
+        this.onTabChangeCallbacks = [];
+    }
 
-    navItems.forEach((item) => {
-        item.addEventListener("click", function () {
-            if (this.style.display === "none") return;
+    /**
+     * Inicializa TODOS os dropdowns (Atendimento e Cadastro)
+     */
+    initializeDropdowns() {
+        if (this.dropdownsInitialized) return;
+        this.dropdownsInitialized = true;
 
-            const tabId = this.getAttribute("data-tab");
+        // Dropdown Atendimento
+        this.setupDropdown("atendimento-dropdown");
+        
+        // Dropdown Cadastro (NOVO)
+        this.setupDropdown("cadastro-dropdown");
+    }
 
-            if (!currentUser.permissions.includes(tabId)) {
-                NotificationSystem.show("Você não tem permissão!", "error");
-                return;
+    /**
+     * Configura um dropdown genérico
+     */
+    setupDropdown(dropdownId) {
+        const dropdown = document.getElementById(dropdownId);
+        if (!dropdown) return;
+
+        const dropdownHeader = dropdown.querySelector(".nav-item-header");
+        if (dropdownHeader) {
+            dropdownHeader.addEventListener("click", (e) => {
+                e.stopPropagation();
+                
+                // Fecha outros dropdowns
+                document.querySelectorAll('.nav-item-dropdown, .nav-item.dropdown').forEach(d => {
+                    if (d.id !== dropdownId) {
+                        d.classList.remove("active");
+                    }
+                });
+                
+                dropdown.classList.toggle("active");
+            });
+        }
+
+        const dropdownItems = dropdown.querySelectorAll(".dropdown-item");
+        dropdownItems.forEach((item) => {
+            item.addEventListener("click", (e) => {
+                e.stopPropagation();
+
+                if (!authManager.isAuthenticated()) {
+                    NotificationSystem.error("Faça login primeiro!");
+                    return;
+                }
+
+                const tabId = item.getAttribute("data-tab");
+
+                if (!authManager.hasPermission(tabId)) {
+                    NotificationSystem.error("Você não tem permissão!");
+                    return;
+                }
+
+                // Remove active de todos os itens do dropdown
+                dropdownItems.forEach((i) => i.classList.remove("active"));
+                item.classList.add("active");
+                
+                // Fecha o dropdown
+                dropdown.classList.remove("active");
+
+                this.switchToTab(tabId);
+            });
+        });
+
+        // Fecha dropdown ao clicar fora
+        document.addEventListener("click", (e) => {
+            if (dropdown && !dropdown.contains(e.target) && dropdown.classList.contains("active")) {
+                dropdown.classList.remove("active");
+            }
+        });
+    }
+
+    /**
+     * Inicializa navegação principal
+     */
+    initializeNavigation() {
+        const navItems = document.querySelectorAll(".nav-item:not(.dropdown)");
+
+        navItems.forEach((item) => {
+            item.addEventListener("click", () => {
+                if (item.style.display === "none") return;
+
+                const tabId = item.getAttribute("data-tab");
+
+                if (!authManager.hasPermission(tabId)) {
+                    NotificationSystem.error("Você não tem permissão!");
+                    return;
+                }
+
+                navItems.forEach((nav) => nav.classList.remove("active"));
+                item.classList.add("active");
+
+                // Remove active dos itens dos dropdowns
+                document.querySelectorAll(".dropdown-item").forEach((dropItem) => {
+                    dropItem.classList.remove("active");
+                });
+
+                // Fecha todos os dropdowns
+                document.querySelectorAll('.nav-item-dropdown, .nav-item.dropdown').forEach(d => {
+                    d.classList.remove("active");
+                });
+
+                this.switchToTab(tabId);
+            });
+        });
+    }
+
+    /**
+     * Troca de aba
+     */
+    switchToTab(tabId) {
+        const tabContents = document.querySelectorAll(".tab-content");
+        const pageTitle = document.getElementById("page-title");
+
+        tabContents.forEach((tab) => tab.classList.remove("active"));
+
+        const targetTab = document.getElementById(tabId);
+        if (targetTab) {
+            targetTab.classList.add("active");
+
+            if (pageTitle) {
+                pageTitle.textContent = getTabDisplayName(tabId);
             }
 
-            navItems.forEach((nav) => nav.classList.remove("active"));
-            this.classList.add("active");
+            this.currentTab = tabId;
 
-            document.querySelectorAll(".dropdown-item").forEach((item) => {
-                item.classList.remove("active");
+            this.onTabChangeCallbacks.forEach(callback => {
+                try {
+                    callback(tabId);
+                } catch (error) {
+                    console.error("Erro no callback de mudança de aba:", error);
+                }
             });
 
-            const dropdown = document.getElementById("atendimento-dropdown");
-            if (dropdown) dropdown.classList.remove("active");
-
-            switchToTab(tabId);
-        });
-    });
-}
-
-
-export function initializeDropdownMenu() {
-    if (window.dropdownInitialized) return;
-    window.dropdownInitialized = true;
-
-    const dropdown = document.getElementById("atendimento-dropdown");
-    if (!dropdown) return;
-
-    const dropdownHeader = dropdown.querySelector(".nav-item-header");
-    if (dropdownHeader) {
-        dropdownHeader.addEventListener("click", function (e) {
-            e.stopPropagation();
-            dropdown.classList.toggle("active");
-        });
+            document.dispatchEvent(new CustomEvent('tabChanged', {
+                detail: { tabId }
+            }));
+        }
     }
 
-    const dropdownItems = dropdown.querySelectorAll(".dropdown-item");
-    dropdownItems.forEach((item) => {
-        item.addEventListener("click", function (e) {
-            e.stopPropagation();
+    /**
+     * Registra callback para mudança de aba
+     */
+    onTabChange(callback) {
+        if (typeof callback === 'function') {
+            this.onTabChangeCallbacks.push(callback);
+        }
+    }
 
-            if (!currentUser) {
-                NotificationSystem.show("Faça login primeiro!", "error");
-                return;
+    /**
+     * Aplica permissões de navegação
+     */
+    applyPermissions() {
+        const navItems = document.querySelectorAll(".nav-item:not(.dropdown)");
+        const dropdownItems = document.querySelectorAll(".dropdown-item");
+
+        navItems.forEach((item) => {
+            const tab = item.getAttribute("data-tab");
+            if (tab && !authManager.hasPermission(tab)) {
+                item.style.display = "none";
+            } else if (tab) {
+                item.style.display = "flex";
             }
-
-            const tabId = this.getAttribute("data-tab");
-
-            if (!currentUser.permissions.includes(tabId)) {
-                NotificationSystem.show("Você não tem permissão!", "error");
-                return;
-            }
-
-            dropdownItems.forEach((i) => i.classList.remove("active"));
-            this.classList.add("active");
-            dropdown.classList.remove("active");
-
-            switchToTab(tabId);
         });
-    });
 
-    document.addEventListener("click", function (e) {
-        if (dropdown && !dropdown.contains(e.target) && dropdown.classList.contains("active")) {
-            dropdown.classList.remove("active");
-        }
-    });
-}
+        dropdownItems.forEach((item) => {
+            const tab = item.getAttribute("data-tab");
+            if (tab && !authManager.hasPermission(tab)) {
+                item.style.display = "none";
+            } else if (tab) {
+                item.style.display = "flex";
+            }
+        });
 
-export function switchToTab(tabId) {
-    const tabContents = document.querySelectorAll(".tab-content");
-    const pageTitle = document.getElementById("page-title");
-
-    tabContents.forEach((tab) => tab.classList.remove("active"));
-
-    const targetTab = document.getElementById(tabId);
-    if (targetTab) {
-        targetTab.classList.add("active");
-
-        if (pageTitle) {
-            pageTitle.textContent = getTabDisplayName(tabId);
+        // Esconde dropdown Atendimento se não houver itens visíveis
+        const atendimentoDropdown = document.getElementById("atendimento-dropdown");
+        if (atendimentoDropdown) {
+            const hasVisibleItems = Array.from(atendimentoDropdown.querySelectorAll(".dropdown-item"))
+                .some(item => item.style.display !== "none");
+            atendimentoDropdown.style.display = hasVisibleItems ? "block" : "none";
         }
 
-        switch (tabId) {
-            case "pdv":
-                loadPDVProducts();
-                updateOrderSummary();
-                break;
-            case "pedidos":
-                updateOrdersView();
-                break;
-            case "mesas":
-                updateMesasView();
-                break;
-            case "cozinha":
-                updateCozinhaView();
-                break;
-            case "dashboard":
-                updateDashboard();
-                break;
-            case "relatorios":
-                updateRelatoriosView();
-                break;
-            case "produtos":
-                updateProdutosView();
-                break;
+        // Esconde dropdown Cadastro se não houver itens visíveis
+        const cadastroDropdown = document.getElementById("cadastro-dropdown");
+        if (cadastroDropdown) {
+            const hasVisibleItems = Array.from(cadastroDropdown.querySelectorAll(".dropdown-item"))
+                .some(item => item.style.display !== "none");
+            cadastroDropdown.style.display = hasVisibleItems ? "block" : "none";
         }
+    }
+
+    /**
+     * Vai para aba específica (se tiver permissão)
+     */
+    goToTab(tabId) {
+        if (!authManager.hasPermission(tabId)) {
+            NotificationSystem.error("Você não tem permissão para acessar esta área!");
+            return false;
+        }
+
+        this.switchToTab(tabId);
+        return true;
+    }
+
+    /**
+     * Obtém aba atual
+     */
+    getCurrentTab() {
+        return this.currentTab;
+    }
+
+    /**
+     * Inicializa tudo
+     */
+    initialize() {
+        this.initializeNavigation();
+        this.initializeDropdowns();
+        this.applyPermissions();
     }
 }
 
-export function applyPermissions() {
-    const navItems = document.querySelectorAll(".nav-item:not(.dropdown)");
-    const dropdownItems = document.querySelectorAll(".dropdown-item");
-
-    navItems.forEach((item) => {
-        const tab = item.getAttribute("data-tab");
-        if (tab && (!currentUser || !currentUser.permissions.includes(tab))) {
-            item.style.display = "none";
-        } else if (tab) {
-            item.style.display = "flex";
-        }
-    });
-
-    dropdownItems.forEach((item) => {
-        const tab = item.getAttribute("data-tab");
-        if (tab && (!currentUser || !currentUser.permissions.includes(tab))) {
-            item.style.display = "none";
-        } else if (tab) {
-            item.style.display = "flex";
-        }
-    });
-
-    const atendimentoDropdown = document.getElementById("atendimento-dropdown");
-    if (atendimentoDropdown) {
-        const visibleChild = Array.from(atendimentoDropdown.querySelectorAll(".dropdown-item"))
-            .some(item => item.style.display !== "none");
-        atendimentoDropdown.style.display = visibleChild ? "block" : "none";
-    }
-}
-
-export function initializeSystemWithPermissions() {
-    if (!products || products.length === 0) {
-        DataManager.loadAppData();
-    }
-
-    initializeNavigation();
-    initializeDropdownMenu();
-    initializeDashboard();
-    initializePDV();
-    initializeOrders();
-    initializeCozinha();
-    initializeMesas();
-    initializeRelatorios();
-    initializeProdutos();
-
-    applyPermissions();
-
-    setTimeout(() => {
-        if (currentUser && currentUser.permissions.includes("pdv")) {
-            loadPDVProducts();
-        }
-        updateOrderSummary();
-        updateDashboard();
-        updateMesasView();
-    }, 100);
-}
+export const navigationManager = new NavigationManager();
