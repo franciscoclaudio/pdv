@@ -8,6 +8,13 @@ export const USERS = [
     {username: "cozinha", password: "123", profile: "cozinha", name: "Pedro Cozinha", permissions: ["cozinha"]},
     {username: "gestor", password: "123", profile: "gestor", name: "Carlos Oliveira", permissions: ["dashboard", "pdv", "pedidos", "cozinha", "mesas", "relatorios", "produtos", "funcionarios", "caixa"]}, // Adicionado "caixa"
 ];
+export const ROLE_PERMISSIONS = {
+    garcom: ["pdv", "pedidos", "mesas", "cozinha"],
+    caixa: ["pdv", "pedidos", "mesas", "relatorios", "caixa"],
+    cozinha: ["cozinha"],
+    gestor: ["dashboard", "pdv", "pedidos", "cozinha", "mesas", "relatorios", "produtos", "funcionarios", "caixa"],
+    gerente: ["dashboard", "pdv", "pedidos", "cozinha", "mesas", "relatorios", "produtos", "funcionarios", "caixa"]
+};
 
 export const INITIAL_PRODUCTS = [
     {id: 1, name: "Pizza Margherita", price: 35.99, category: "Pratos", image: "../images/pizza-margherita.jpg"},

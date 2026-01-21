@@ -174,8 +174,10 @@ export class NavigationManager {
             const tab = item.getAttribute("data-tab");
             if (tab && !authManager.hasPermission(tab)) {
                 item.style.display = "none";
+                console.log('❌ Ocultando aba:', tab);
             } else if (tab) {
                 item.style.display = "flex";
+                console.log('✅ Exibindo aba:', tab);
             }
         });
 
@@ -183,8 +185,10 @@ export class NavigationManager {
             const tab = item.getAttribute("data-tab");
             if (tab && !authManager.hasPermission(tab)) {
                 item.style.display = "none";
+                console.log('❌ Ocultando aba:', tab);
             } else if (tab) {
                 item.style.display = "flex";
+                console.log('✅ Exibindo aba:', tab);
             }
         });
 

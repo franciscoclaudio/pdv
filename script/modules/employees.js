@@ -75,6 +75,29 @@ export class EmployeesManager {
             NotificationSystem.error("A senha deve ter pelo menos 3 caracteres!");
             return;
         }
+        // Validação de e-mail único
+        if (email && !this.editingId) {
+            const emailExists = dataManager.employees.some(e => 
+                e.email && e.email.toLowerCase() === email.toLowerCase()
+            );
+            
+            if (emailExists) {
+                NotificationSystem.error("Este e-mail já está cadastrado!");
+                return;
+            }
+        }
+
+        // Validação de nome único
+        if (!this.editingId) {
+            const nameExists = dataManager.employees.some(e => 
+                e.name.toLowerCase().replace(/\s+/g, '') === name.toLowerCase().replace(/\s+/g, '')
+            );
+            
+            if (nameExists) {
+                NotificationSystem.error("Já existe um funcionário com este nome!");
+                return;
+            }
+        }
 
         if (this.editingId) {
             this.updateEmployee(this.editingId, { name, email, phone, role, password });
@@ -199,7 +222,7 @@ export class EmployeesManager {
                         <tr>
                             <th>Nome</th>
                             <th>Cargo</th>
-                            <th>E-mail</th>
+                            <th>Login</th>
                             <th>Telefone</th>
                             <th style="text-align: center; width: 120px;">Ações</th>
                         </tr>
@@ -222,7 +245,14 @@ export class EmployeesManager {
                 <tr>
                     <td><strong>${emp.name}</strong></td>
                     <td><span class="badge">${roleNames[emp.role] || emp.role}</span></td>
-                    <td>${emp.email || '-'}</td>
+                    <td>
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <span>${loginUsername}</span>
+                            <span style="font-size: 0.75rem; color: #666;">
+                                ${emp.email ? '📧 E-mail' : '👤 Nome'}
+                            </span>
+                        </div>
+                    </td>
                     <td>${emp.phone || '-'}</td>
                     <td style="text-align: center;">
                         <button class="btn-icon" data-id="${emp.id}" data-action="view-login" title="Ver credenciais de login">
@@ -276,19 +306,28 @@ export class EmployeesManager {
         }
 
         const loginUsername = employee.email || employee.name.toLowerCase().replace(/\s+/g, '');
+        const roleName = ROLE_PERMISSIONS[employee.role]?.name || employee.role;
         
         const message = `
-            <div style="text-align: left;">
-                <p><strong>Credenciais de Login:</strong></p>
-                <p style="margin: 10px 0;">
-                    <strong>Usuário:</strong> ${loginUsername}<br>
-                    <strong>Senha:</strong> ${employee.password}
-                </p>
-                <p style="color: #666; font-size: 0.9rem; margin-top: 15px;">
-                    💡 O funcionário pode usar seu <strong>nome</strong> ou <strong>e-mail</strong> para fazer login.
-                </p>
+        <div style="text-align: left; padding: 10px;">
+            <h3>🔑 Credenciais de Login</h3>
+            
+            <div style="background: #f8f9fa; padding: 15px;">
+                <p><strong>Nome:</strong> ${employee.name}</p>
+                <p><strong>Cargo:</strong> ${roleName}</p>
+                ${employee.email ? `<p><strong>E-mail:</strong> ${employee.email}</p>` : ''}
             </div>
-        `;
+            
+            <div style="background: #e8f5e9; padding: 15px;">
+                <p><strong>Usuário:</strong> ${loginUsername}</p>
+                <p><strong>Senha:</strong> ${employee.password}</p>
+            </div>
+            
+            <div style="background: #fff3cd; padding: 12px;">
+                <p>💡 O funcionário pode usar seu nome ou e-mail para login.</p>
+            </div>
+        </div>
+    `;
 
         NotificationSystem.show(message, "info", 8000);
     }

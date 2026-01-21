@@ -85,7 +85,9 @@ export class AuthManager {
             });
 
             if (employee) {
+                console.log('✅ Funcionário encontrado:', employee.name, 'Cargo:', employee.role);
                 user = this.convertEmployeeToUser(employee);
+                console.log('✅ Usuário convertido com permissões:', user.permissions);
             }
         }
 
@@ -95,6 +97,12 @@ export class AuthManager {
             
             this.showMainSystem();
             NotificationSystem.success(`Bem-vindo, ${user.name}!`);
+            console.log('🔐 Login bem-sucedido:', {
+                name: user.name,
+                profile: user.profile,
+                permissions: user.permissions,
+                isEmployee: user.isEmployee || false
+            });
             
             this.setupInactivityTimer();
             return true;
@@ -116,15 +124,18 @@ export class AuthManager {
             'gestor': ["dashboard", "pdv", "pedidos", "cozinha", "mesas", "relatorios", "produtos", "funcionarios", "caixa"],
             'gerente': ["dashboard", "pdv", "pedidos", "cozinha", "mesas", "relatorios", "produtos", "funcionarios", "caixa"]
         };
+        const validRole = employee.role && rolePermissions[employee.role] ? employee.role : 'garcom';
 
         return {
             username: employee.email || employee.name.toLowerCase().replace(/\s+/g, ''),
             password: employee.password,
-            profile: employee.role,
+            profile: validRole,  // ✅ Sempre válido
             name: employee.name,
-            permissions: rolePermissions[employee.role] || ["pdv"],
+            permissions: rolePermissions[validRole],  // ✅ Sempre tem permissões
             isEmployee: true,
-            employeeId: employee.id
+            employeeId: employee.id,
+            email: employee.email || null,  // ✅ Adiciona email
+            phone: employee.phone || null   // ✅ Adiciona telefone
         };
     }
 
