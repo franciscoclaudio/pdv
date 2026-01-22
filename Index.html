@@ -6,7 +6,7 @@
     <meta name="description" content="Sistema PDV para Restaurantes e Bares" />
     <title>Sistema PDV - Restaurantes & Bares</title>
     <!-- link rel="stylesheet" href="style.css" /-->
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="style_index.css" />
 </head>
 <body>
     <!-- Tela de Login -->
@@ -99,6 +99,10 @@
                     <li class="nav-item" data-tab="cozinha">
                         <span class="icon">👨‍🍳</span>
                         Cozinha
+                    </li>
+                    <li class="nav-item" data-tab="delivery">
+                        <span class="icon">🚚</span>
+                        Delivery
                     </li>
                     <li class="nav-item" data-tab="relatorios">
                         <span class="icon">📈</span>
@@ -244,10 +248,13 @@
                                         <select id="pdv-type-selector" class="form-control" style="flex: 2; height: 35px; font-size: 14px;">
                                             <option value="table">Mesa</option>
                                             <option value="counter">Balcão</option>
+                                            <option value="delivery">Delivery</option>
                                         </select>
                                         <input type="number" id="pdv-table-input" class="form-control" placeholder="Nº Mesa" style="flex: 1; height: 35px; font-size: 14px;">
                                     </div>
                                     <input type="text" id="pdv-customer-input" class="form-control" placeholder="Nome do Cliente" style="width: 100%; height: 35px; font-size: 14px;">
+                                    <input type="tel" id="pdv-phone-input" class="form-control" placeholder="Telefone" style="width: 100%; height: 35px; font-size: 14px; display: none;">
+                                    <input type="text" id="pdv-address-input" class="form-control" placeholder="Endereço de Entrega" style="width: 100%; height: 35px; font-size: 14px; display: none;">
                                 </div>
                                 <div class="order-items" id="current-order-items"></div>
                                 
@@ -336,7 +343,74 @@
                         </div>
                     </div>
                 </div>
-
+                <!-- Delivery Tab -->
+                <div class="tab-content" id="delivery">
+                    <div class="delivery-container">
+                        <div class="tab-header">
+                            <h3>🚚 Delivery</h3>
+                            <div class="tab-actions">
+                                <input type="text" id="search-delivery" placeholder="Buscar pedido delivery..." />
+                            </div>
+                        </div>
+                        
+                        <!-- Estatísticas -->
+                        <div class="delivery-stats-cards">
+                            <div class="status-card total">
+                                <h4>Total</h4>
+                                <div class="status-number" id="delivery-total-count">0</div>
+                            </div>
+                            <div class="status-card pending">
+                                <h4>Pendentes</h4>
+                                <div class="status-number" id="delivery-pending-count">0</div>
+                            </div>
+                            <div class="status-card preparing">
+                                <h4>Em rota</h4>
+                                <div class="status-number" id="delivery-enroute-count">0</div>
+                            </div>
+                            <div class="status-card delivered">
+                                <h4>Entregues</h4>
+                                <div class="status-number" id="delivery-delivered-count">0</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Pedidos Pendentes de Pagamento -->
+                        <div class="delivery-section">
+                            <h4>📋 Pedidos pendentes de pagamento</h4>
+                            <div class="pending-payments-cards" id="delivery-pending-payments">
+                                <div class="no-orders">Nenhum pedido pendente de pagamento</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Kanban de Pedidos -->
+                        <div class="delivery-kanban">
+                            <div class="kanban-column">
+                                <h3>Pendentes</h3>
+                                <div class="kanban-cards" id="delivery-pending">
+                                    <div class="no-orders">Nenhum pedido pendente</div>
+                                </div>
+                            </div>
+                            <div class="kanban-column">
+                                <h3>Preparando</h3>
+                                <div class="kanban-cards" id="delivery-preparing">
+                                    <div class="no-orders">Nenhum pedido em preparo</div>
+                                </div>
+                            </div>
+                            <div class="kanban-column">
+                                <h3>Em Rota</h3>
+                                <div class="kanban-cards" id="delivery-enroute">
+                                    <div class="no-orders">Nenhum pedido em rota</div>
+                                </div>
+                            </div>
+                            <div class="kanban-column">
+                                <h3>Entregues</h3>
+                                <div class="kanban-cards" id="delivery-delivered">
+                                    <div class="no-orders">Nenhum pedido entregue</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Mesas Tab -->
                 <div class="tab-content" id="mesas">
                     <div class="tab-header">
@@ -416,6 +490,10 @@
                             <button class="btn report-btn" id="btn-weekly">Gerar relatório de vendas semanal</button>
                             <button class="btn report-btn" id="btn-cash-total">Gerar relatório de total dinheiro</button>
                             <button class="btn report-btn" id="btn-pix-total">Gerar relatório de total pix</button>
+
+                            <button class="btn report-btn" id="btn-delivery-today">🛵 Delivery Hoje</button>
+                            <button class="btn report-btn" id="btn-delivery-week">🛵 Delivery Semanal</button>
+                            <button class="btn report-btn" id="btn-delivery-month">🛵 Delivery Mensal</button>
                         </div>
 
                         <!-- Área com controles de export / resultado do relatório -->

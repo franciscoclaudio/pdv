@@ -5,6 +5,8 @@
 
 import { initializeSystem } from './init.js';
 import { initLogoUpload } from './logo.js';
+import { deliveryManager } from './modules/delivery.js';
+import { reportsManager } from './modules/reports.js';
 
 /**
  * Ponto de entrada da aplicação

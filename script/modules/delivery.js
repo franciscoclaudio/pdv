@@ -8,6 +8,7 @@ import { authManager } from './auth.js';
 import { formatCurrency, formatDateTime } from '../utils/helpers.js';
 import { ORDER_STATUS } from '../utils/constants.js';
 
+
 /**
  * Gerenciador de Delivery
  */
@@ -82,6 +83,17 @@ export class DeliveryManager {
         // Filtra apenas pedidos do tipo delivery
         this.ordersCache = dataManager.orders
             .filter(order => order.type === 'delivery')
+            .map(order => {
+                // Se a cozinha marcou como pronto, mostra como preparando para entrega
+                if (order.kitchenStatus === 'pronto' && order.status === 'preparing') {
+                    return {
+                        ...order,
+                        displayStatus: 'preparing', // Para mostrar no delivery
+                        isReadyForDelivery: true // Flag para indicar que está pronto
+                    };
+                }
+                return order;
+            })
             .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
@@ -233,6 +245,10 @@ export class DeliveryManager {
         card.className = 'delivery-order-card';
         card.setAttribute('data-order-id', order.id);
         
+        // Verifica se está pronto na cozinha
+        const isKitchenReady = order.kitchenStatus === 'pronto' || order.isReadyForDelivery;
+        const readyClass = isKitchenReady ? 'kitchen-ready' : '';
+        
         const itemsCount = order.items.reduce((sum, item) => sum + item.quantity, 0);
         const timeAgo = this.getTimeAgo(order.createdAt);
         const statusClass = this.getStatusClass(order.status);
@@ -240,8 +256,16 @@ export class DeliveryManager {
         card.innerHTML = `
             <div class="delivery-card-header">
                 <div class="delivery-order-id">Pedido #${order.id}</div>
-                <div class="delivery-status ${statusClass}">${this.getStatusText(order.status)}</div>
+                <div class="delivery-status ${statusClass} ${readyClass}">
+                    ${this.getStatusText(order.status)}
+                    ${isKitchenReady ? ' ✓' : ''}
+                </div>
             </div>
+            ${isKitchenReady ? `
+                <div class="kitchen-ready-badge" style="background: #27ae60; color: white; padding: 4px 8px; border-radius: 4px; margin: 5px 0; font-size: 0.8rem; display: flex; align-items: center; gap: 5px;">
+                    <span>👨‍🍳</span> Pronto na cozinha
+                </div>
+            ` : ''}
             <div class="delivery-card-body">
                 <div class="delivery-customer">
                     <strong>${order.customerName || 'Cliente não informado'}</strong>
@@ -301,10 +325,16 @@ export class DeliveryManager {
     /**
      * Obtém botões de ação baseados no status
      */
+    /**
+     * Obtém botões de ação baseados no status
+     */
     getActionButtons(order) {
         const buttons = [];
         const orderId = order.id;
-
+        
+        // Verifica se está pronto na cozinha
+        const isKitchenReady = order.kitchenStatus === 'pronto' || order.isReadyForDelivery;
+    
         switch (order.status) {
             case 'pending':
                 buttons.push(`
@@ -317,13 +347,24 @@ export class DeliveryManager {
                 break;
                 
             case 'preparing':
-                buttons.push(`
-                    <button class="btn btn-sm btn-primary btn-action" 
-                            data-action="mark_enroute" 
-                            data-order-id="${orderId}">
-                        Saiu para Entrega
-                    </button>
-                `);
+                if (isKitchenReady) {
+                    // Botão especial para pedidos prontos na cozinha
+                    buttons.push(`
+                        <button class="btn btn-sm btn-ready-for-delivery btn-action" 
+                                data-action="mark_enroute" 
+                                data-order-id="${orderId}">
+                            🚚 Saiu para Entrega
+                        </button>
+                    `);
+                } else {
+                    buttons.push(`
+                        <button class="btn btn-sm btn-primary btn-action" 
+                                data-action="mark_enroute" 
+                                data-order-id="${orderId}">
+                            Saiu para Entrega
+                        </button>
+                    `);
+                }
                 break;
                 
             case 'enroute':
@@ -353,7 +394,8 @@ export class DeliveryManager {
                 }
                 break;
         }
-
+    
+        // Botão de detalhes (sempre disponível)
         buttons.push(`
             <button class="btn btn-sm btn-secondary btn-action" 
                     data-action="view_details" 
@@ -361,23 +403,26 @@ export class DeliveryManager {
                 Detalhes
             </button>
         `);
-
+    
         return buttons.join('');
     }
-
     /**
      * Manipula ações dos botões
      */
     handleAction(action, orderId) {
         const order = dataManager.orders.find(o => o.id === orderId);
         if (!order) return;
-
+    
         switch (action) {
             case 'start_preparing':
                 this.updateOrderStatus(orderId, 'preparing');
                 break;
                 
             case 'mark_enroute':
+                // Se estava pronto na cozinha, limpa o flag
+                if (order.kitchenStatus === 'pronto') {
+                    order.kitchenStatus = null;
+                }
                 this.updateOrderStatus(orderId, 'enroute');
                 break;
                 
@@ -408,14 +453,27 @@ export class DeliveryManager {
             NotificationSystem.error('Pedido não encontrado!');
             return;
         }
-
+    
         const oldStatus = order.status;
+        
+        // Se marcando como "em rota" e estava pronto na cozinha
+        if (newStatus === 'enroute' && order.kitchenStatus === 'pronto') {
+            order.kitchenStatus = null; // Limpa o status da cozinha
+        }
+        
         order.status = newStatus;
         order.updatedAt = new Date();
         
         dataManager.saveAppData();
         
-        NotificationSystem.success(`Pedido #${orderId} atualizado: ${this.getStatusText(oldStatus)} → ${this.getStatusText(newStatus)}`);
+        // Mensagem apropriada
+        let statusChange = `${this.getStatusText(oldStatus)} → ${this.getStatusText(newStatus)}`;
+        
+        if (newStatus === 'enroute' && oldStatus === 'preparing') {
+            statusChange = 'Pronto na cozinha → Saiu para entrega';
+        }
+        
+        NotificationSystem.success(`Pedido #${orderId} atualizado: ${statusChange}`);
         
         // Atualiza a view
         this.updateView();
@@ -428,40 +486,14 @@ export class DeliveryManager {
     markAsPaid(orderId) {
         const order = dataManager.orders.find(o => o.id === orderId);
         if (!order) return;
-
+    
         if (order.paymentStatus === 'paid') {
             NotificationSystem.info('Pedido já está marcado como pago!');
             return;
         }
-
-        NotificationSystem.confirm(
-            `Deseja marcar o pedido #${orderId} como pago?`,
-            'Marcar como Pago',
-            'Cancelar'
-        ).then(confirmed => {
-            if (confirmed) {
-                order.paymentStatus = 'paid';
-                order.paymentDate = new Date();
-                order.updatedAt = new Date();
-                
-                dataManager.saveAppData();
-                
-                NotificationSystem.success(`Pedido #${orderId} marcado como pago!`);
-                
-                // Atualiza a view
-                this.updateView();
-                document.dispatchEvent(new Event('ordersUpdated'));
-                
-                // Dispara evento de atualização do caixa
-                document.dispatchEvent(new CustomEvent('caixaUpdated', {
-                    detail: {
-                        orderId: orderId,
-                        amount: order.total,
-                        method: order.paymentMethod
-                    }
-                }));
-            }
-        });
+    
+        // Abre modal de pagamento ao invés de marcar diretamente
+        this.showPaymentModal(orderId);
     }
 
     /**
@@ -605,6 +637,309 @@ export class DeliveryManager {
         }));
 
         return deliveryOrder;
+    }
+    /**
+     * Mostra modal de pagamento para delivery
+     */
+    showPaymentModal(orderId) {
+        const order = dataManager.orders.find(o => o.id === orderId);
+        if (!order) {
+            NotificationSystem.error('Pedido não encontrado!');
+            return;
+        }
+    
+        if (order.paymentStatus === 'paid') {
+            NotificationSystem.info('Pedido já está marcado como pago!');
+            return;
+        }
+    
+        const subtotal = order.subtotal || 0;
+        const serviceTax = order.serviceTax || 0;
+        const total = order.total || 0;
+    
+        // Remove modal existente se houver
+        const existingModal = document.getElementById("delivery-payment-modal");
+        if (existingModal) existingModal.remove();
+    
+        const modal = document.createElement("div");
+        modal.className = "modal active";
+        modal.id = "delivery-payment-modal";
+        modal.innerHTML = `
+            <div class="modal-content payment-modal">
+                <div class="modal-header">
+                    <h3>💳 Pagamento Delivery - Pedido #${order.id}</h3>
+                    <span class="close">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <!-- Informações do Cliente -->
+                    <div class="delivery-payment-info">
+                        <h4>📦 Informações do Pedido</h4>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Cliente:</span>
+                                <span class="info-value">${order.customerName || 'Não informado'}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Telefone:</span>
+                                <span class="info-value">${order.phone || 'Não informado'}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Endereço:</span>
+                                <span class="info-value">${order.address || 'Não informado'}</span>
+                            </div>
+                        </div>
+                    </div>
+    
+                    <!-- Resumo do Pedido -->
+                    <div class="payment-summary">
+                        <h4>💰 Resumo do Pedido</h4>
+                        <div class="summary-line">
+                            <span>Subtotal:</span>
+                            <span>${formatCurrency(subtotal)}</span>
+                        </div>
+                        <div class="summary-line">
+                            <span>Taxa de Serviço (10%):</span>
+                            <span>${formatCurrency(serviceTax)}</span>
+                        </div>
+                        <div class="summary-line total">
+                            <span><strong>Total a Pagar:</strong></span>
+                            <span><strong>${formatCurrency(total)}</strong></span>
+                        </div>
+                    </div>
+    
+                    <!-- Método de Pagamento -->
+                    <div class="form-group">
+                        <label for="delivery-payment-method">Método de Pagamento:</label>
+                        <select id="delivery-payment-method" class="form-control">
+                            <option value="cash">💵 Dinheiro</option>
+                            <option value="card">💳 Cartão</option>
+                            <option value="pix">📱 PIX</option>
+                            <option value="meal_voucher">🍴 Vale Refeição</option>
+                        </select>
+                    </div>
+    
+                    <!-- Campo para Dinheiro -->
+                    <div class="form-group" id="delivery-cash-group" style="display:none;">
+                        <label for="delivery-amount-received">Valor Recebido:</label>
+                        <input type="number" id="delivery-amount-received" class="form-control" 
+                               step="0.01" min="${total}" value="${total}">
+                        <div id="delivery-change-display" style="margin-top:10px; display:none;">
+                            <strong>Troco:</strong> <span id="delivery-change-amount">R$ 0,00</span>
+                        </div>
+                    </div>
+    
+                    <!-- Campo para Cartão -->
+                    <div class="form-group" id="delivery-card-group" style="display:none;">
+                        <label for="delivery-card-installments">Parcelas:</label>
+                        <select id="delivery-card-installments" class="form-control">
+                            <option value="1">À vista</option>
+                            <option value="2">2x sem juros</option>
+                            <option value="3">3x sem juros</option>
+                            <option value="4">4x sem juros</option>
+                            <option value="5">5x sem juros</option>
+                            <option value="6">6x sem juros</option>
+                        </select>
+                        <div id="delivery-installment-value" style="margin-top:10px;"></div>
+                    </div>
+    
+                    <!-- Info PIX -->
+                    <div class="form-group" id="delivery-pix-group" style="display:none;">
+                        <div style="text-align:center; padding:20px; background:#f8f9fa; border-radius:8px;">
+                            <p><strong>Chave PIX:</strong></p>
+                            <p style="font-size:1.2rem; font-weight:700; color:var(--primary-color);">
+                                restaurant@pix.com.br
+                            </p>
+                            <p style="margin-top:15px; color:#666;">Aguardando confirmação do pagamento...</p>
+                        </div>
+                    </div>
+    
+                    <!-- Campo Vale Refeição -->
+                    <div class="form-group" id="delivery-voucher-group" style="display:none;">
+                        <label for="delivery-voucher-code">Código do Vale:</label>
+                        <input type="text" id="delivery-voucher-code" class="form-control" 
+                               placeholder="Digite o código do vale">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancel-delivery-payment">
+                        Cancelar
+                    </button>
+                    <button type="button" class="btn btn-primary" id="confirm-delivery-payment">
+                        ✅ Confirmar Pagamento
+                    </button>
+                </div>
+            </div>
+        `;
+    
+        document.body.appendChild(modal);
+    
+        // Configurar eventos do modal
+        this.setupDeliveryPaymentModalEvents(modal, order, total);
+    }
+    
+    /**
+     * Configura eventos do modal de pagamento delivery
+     */
+    setupDeliveryPaymentModalEvents(modal, order, total) {
+        const paymentMethodSelect = modal.querySelector("#delivery-payment-method");
+        const amountReceivedInput = modal.querySelector("#delivery-amount-received");
+        const changeDisplay = modal.querySelector("#delivery-change-display");
+        const changeAmount = modal.querySelector("#delivery-change-amount");
+        const cashGroup = modal.querySelector("#delivery-cash-group");
+        const cardGroup = modal.querySelector("#delivery-card-group");
+        const pixGroup = modal.querySelector("#delivery-pix-group");
+        const voucherGroup = modal.querySelector("#delivery-voucher-group");
+        const cardInstallments = modal.querySelector("#delivery-card-installments");
+        const installmentValue = modal.querySelector("#delivery-installment-value");
+        const closeBtn = modal.querySelector(".close");
+        const cancelBtn = modal.querySelector("#cancel-delivery-payment");
+        const confirmBtn = modal.querySelector("#confirm-delivery-payment");
+    
+        // Atualiza grupos de pagamento
+        const updatePaymentGroups = () => {
+            const method = paymentMethodSelect.value;
+            
+            cashGroup.style.display = "none";
+            cardGroup.style.display = "none";
+            pixGroup.style.display = "none";
+            voucherGroup.style.display = "none";
+    
+            if (method === "cash") {
+                cashGroup.style.display = "block";
+                if (amountReceivedInput) amountReceivedInput.value = total.toFixed(2);
+            } else if (method === "card") {
+                cardGroup.style.display = "block";
+                updateInstallmentValue();
+            } else if (method === "pix") {
+                pixGroup.style.display = "block";
+            } else if (method === "meal_voucher") {
+                voucherGroup.style.display = "block";
+            }
+        };
+    
+        // Atualiza valor das parcelas
+        const updateInstallmentValue = () => {
+            const installments = parseInt(cardInstallments.value);
+            const valuePerInstallment = total / installments;
+            if (installmentValue) {
+                installmentValue.innerHTML = `<strong>Valor por parcela:</strong> ${formatCurrency(valuePerInstallment)}`;
+            }
+        };
+    
+        // Calcula troco
+        const calculateChange = () => {
+            if (amountReceivedInput) {
+                const received = parseFloat(amountReceivedInput.value) || 0;
+                const change = Math.max(0, received - total);
+                if (changeAmount) changeAmount.textContent = formatCurrency(change);
+                if (changeDisplay) changeDisplay.style.display = change > 0 ? "block" : "none";
+            }
+        };
+    
+        // Fecha modal
+        const closeModal = () => {
+            modal.classList.remove("active");
+            setTimeout(() => modal.remove(), 300);
+        };
+    
+        // Event listeners
+        paymentMethodSelect.addEventListener("change", updatePaymentGroups);
+        if (amountReceivedInput) amountReceivedInput.addEventListener("input", calculateChange);
+        if (cardInstallments) cardInstallments.addEventListener("change", updateInstallmentValue);
+    
+        closeBtn.addEventListener("click", closeModal);
+        cancelBtn.addEventListener("click", closeModal);
+    
+        confirmBtn.addEventListener("click", () => {
+            this.processDeliveryPayment(modal, order, total, closeModal);
+        });
+    
+        updatePaymentGroups();
+    }
+    
+    /**
+     * Processa pagamento do delivery
+     */
+    processDeliveryPayment(modal, order, total, closeModal) {
+        const paymentMethod = modal.querySelector("#delivery-payment-method").value;
+        const amountReceivedInput = modal.querySelector("#delivery-amount-received");
+        const voucherCodeInput = modal.querySelector("#delivery-voucher-code");
+        const cardInstallments = modal.querySelector("#delivery-card-installments");
+    
+        const amountReceived = parseFloat(amountReceivedInput?.value) || total;
+        const voucherCode = voucherCodeInput ? voucherCodeInput.value.trim() : "";
+        const installments = paymentMethod === "card" ? parseInt(cardInstallments.value) : 1;
+    
+        // Validações
+        if (paymentMethod === "cash" && amountReceived < total) {
+            NotificationSystem.error("Valor recebido é menor que o total!");
+            return;
+        }
+    
+        if (paymentMethod === "meal_voucher" && !voucherCode) {
+            NotificationSystem.error("Código do vale é obrigatório!");
+            return;
+        }
+    
+        // Atualiza pedido
+        const orderToUpdate = dataManager.orders.find(o => o.id === order.id);
+        if (!orderToUpdate) {
+            NotificationSystem.error("Pedido não encontrado");
+            closeModal();
+            return;
+        }
+    
+        orderToUpdate.paymentStatus = "paid";
+        orderToUpdate.paymentMethod = paymentMethod;
+        orderToUpdate.paymentDate = new Date();
+        orderToUpdate.amountReceived = amountReceived;
+        orderToUpdate.change = paymentMethod === "cash" ? Math.max(0, amountReceived - total) : 0;
+        
+        if (paymentMethod === "card") {
+            orderToUpdate.installments = installments;
+        }
+        
+        if (paymentMethod === "meal_voucher") {
+            orderToUpdate.voucherCode = voucherCode;
+        }
+    
+        dataManager.saveAppData();
+    
+        // Mensagem de sucesso
+        const methodNames = {
+            'cash': 'Dinheiro',
+            'card': 'Cartão',
+            'pix': 'PIX',
+            'meal_voucher': 'Vale Refeição'
+        };
+        
+        let message = `✅ Pagamento processado com sucesso!\nPedido #${order.id} - ${formatCurrency(total)}\nMétodo: ${methodNames[paymentMethod]}`;
+        
+        if (orderToUpdate.change > 0) {
+            message += `\n💵 Troco: ${formatCurrency(orderToUpdate.change)}`;
+        }
+        
+        if (paymentMethod === "card" && installments > 1) {
+            message += `\n📊 ${installments}x de ${formatCurrency(total / installments)}`;
+        }
+    
+        NotificationSystem.success(message, 7000);
+    
+        // Dispara eventos de atualização
+        document.dispatchEvent(new CustomEvent('caixaUpdated', {
+            detail: {
+                orderId: order.id,
+                amount: total,
+                method: paymentMethod
+            }
+        }));
+        
+        document.dispatchEvent(new Event('ordersUpdated'));
+    
+        // Atualiza view do delivery
+        this.updateView();
+    
+        closeModal();
     }
 }
 

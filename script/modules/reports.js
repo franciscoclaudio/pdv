@@ -4,8 +4,10 @@
 
 import { dataManager } from './dataManager.js';
 import { NotificationSystem } from './notifications.js';
-import { formatCurrency, filterOrdersByDate } from '../utils/helpers.js';
+import { formatCurrency, filterOrdersByDate, formatDateTime } from '../utils/helpers.js';
 import { validateReportPeriod } from '../utils/validators.js';
+
+
 
 /**
  * Utilitário: garante que html2pdf esteja carregado (faz load dinâmico se necessário)
@@ -135,6 +137,28 @@ export class ReportsManager {
         if (btnCardTotal) btnCardTotal.addEventListener('click', () => this.triggerQuickReport({ period: 'all', paymentMethod: 'card', label: 'Total Cartão' }));
         if (btnCashTotal) btnCashTotal.addEventListener('click', () => this.triggerQuickReport({ period: 'all', paymentMethod: 'cash', label: 'Total Dinheiro' }));
         if (btnPixTotal) btnPixTotal.addEventListener('click', () => this.triggerQuickReport({ period: 'all', paymentMethod: 'pix', label: 'Total PIX' }));
+        // Botões de relatório de delivery
+        const btnDeliveryToday = document.getElementById("btn-delivery-today");
+        const btnDeliveryWeek = document.getElementById("btn-delivery-week");
+        const btnDeliveryMonth = document.getElementById("btn-delivery-month");
+        
+        if (btnDeliveryToday) {
+            btnDeliveryToday.addEventListener('click', () => {
+                this.generateDeliveryReport('today');
+            });
+        }
+        
+        if (btnDeliveryWeek) {
+            btnDeliveryWeek.addEventListener('click', () => {
+                this.generateDeliveryReport('week');
+            });
+        }
+        
+        if (btnDeliveryMonth) {
+            btnDeliveryMonth.addEventListener('click', () => {
+                this.generateDeliveryReport('month');
+            });
+        }
     }
 
     /**
@@ -760,6 +784,229 @@ export class ReportsManager {
             custom: "Personalizado"
         };
         return labels[period] || period;
+    }
+    /**
+     * Gera relatório de delivery
+     */
+    generateDeliveryReport(period = 'today') {
+        const resultsContainer = document.getElementById("report-results-container");
+        if (!resultsContainer) return;
+    
+        // Filtra pedidos de delivery
+        let deliveryOrders = dataManager.orders.filter(o => o.type === 'delivery');
+        
+        // Aplica filtro de período
+        if (period !== 'all') {
+            deliveryOrders = filterOrdersByDate(deliveryOrders, period);
+        }
+    
+        if (deliveryOrders.length === 0) {
+            resultsContainer.innerHTML = `
+                <div class="no-orders" style="text-align: center; padding: 40px">
+                    <h4>Nenhum pedido de delivery encontrado</h4>
+                    <p>Não há pedidos de delivery no período selecionado.</p>
+                </div>
+            `;
+            return;
+        }
+    
+        // Estatísticas gerais
+        const totalOrders = deliveryOrders.length;
+        const totalRevenue = deliveryOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+        const paidOrders = deliveryOrders.filter(o => o.paymentStatus === 'paid');
+        const totalPaid = paidOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+        const pendingPayment = totalRevenue - totalPaid;
+    
+        // Por status
+        const byStatus = {
+            pending: deliveryOrders.filter(o => o.status === 'pending').length,
+            preparing: deliveryOrders.filter(o => o.status === 'preparing').length,
+            enroute: deliveryOrders.filter(o => o.status === 'enroute').length,
+            delivered: deliveryOrders.filter(o => o.status === 'delivered').length
+        };
+    
+        // Por forma de pagamento
+        const byPaymentMethod = {};
+        deliveryOrders.forEach(order => {
+            const method = order.paymentMethod || 'não definido';
+            if (!byPaymentMethod[method]) {
+                byPaymentMethod[method] = { count: 0, total: 0 };
+            }
+            byPaymentMethod[method].count++;
+            byPaymentMethod[method].total += order.total || 0;
+        });
+    
+        // Tempo médio de entrega
+        const deliveredOrders = deliveryOrders.filter(o => 
+            o.status === 'delivered' && o.createdAt && o.updatedAt
+        );
+        
+        let avgDeliveryTime = 0;
+        if (deliveredOrders.length > 0) {
+            const times = deliveredOrders.map(o => {
+                const start = new Date(o.createdAt);
+                const end = new Date(o.updatedAt);
+                return (end - start) / (1000 * 60); // minutos
+            });
+            avgDeliveryTime = times.reduce((a, b) => a + b, 0) / times.length;
+        }
+    
+        // Produtos mais vendidos
+        const productsSold = {};
+        deliveryOrders.forEach(order => {
+            (order.items || []).forEach(item => {
+                if (!productsSold[item.name]) {
+                    productsSold[item.name] = { quantity: 0, revenue: 0 };
+                }
+                productsSold[item.name].quantity += item.quantity;
+                productsSold[item.name].revenue += item.price * item.quantity;
+            });
+        });
+    
+        const topProducts = Object.entries(productsSold)
+            .sort((a, b) => b[1].quantity - a[1].quantity)
+            .slice(0, 5);
+    
+        // Gera HTML do relatório
+        let html = `
+            <div class="report-summary card">
+                <h3>🛵 Relatório de Delivery</h3>
+                <p><strong>Período:</strong> ${this.getPeriodLabel(period)}</p>
+                <p><strong>Data de Geração:</strong> ${formatDateTime(new Date())}</p>
+            </div>
+    
+            <div class="report-details card" style="margin-top:12px">
+                <h4>📊 Estatísticas Gerais</h4>
+                <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                    <div class="stat-item" style="background: #e3f2fd; padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: bold; color: #1976d2;">${totalOrders}</div>
+                        <div style="color: #666; font-size: 0.9rem;">Total de Pedidos</div>
+                    </div>
+                    <div class="stat-item" style="background: #e8f5e9; padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: bold; color: #388e3c;">${formatCurrency(totalRevenue)}</div>
+                        <div style="color: #666; font-size: 0.9rem;">Faturamento Total</div>
+                    </div>
+                    <div class="stat-item" style="background: #fff3e0; padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: bold; color: #f57c00;">${formatCurrency(totalPaid)}</div>
+                        <div style="color: #666; font-size: 0.9rem;">Recebido</div>
+                    </div>
+                    <div class="stat-item" style="background: #fce4ec; padding: 15px; border-radius: 8px; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: bold; color: #c2185b;">${formatCurrency(pendingPayment)}</div>
+                        <div style="color: #666; font-size: 0.9rem;">Pendente</div>
+                    </div>
+                </div>
+            </div>
+    
+            <div class="report-details card" style="margin-top:12px">
+                <h4>📦 Status dos Pedidos</h4>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px;">
+                    <div style="padding: 10px; background: #fff3e0; border-left: 4px solid #f39c12; border-radius: 4px;">
+                        <strong>Pendentes:</strong> ${byStatus.pending} pedidos
+                    </div>
+                    <div style="padding: 10px; background: #e3f2fd; border-left: 4px solid #3498db; border-radius: 4px;">
+                        <strong>Preparando:</strong> ${byStatus.preparing} pedidos
+                    </div>
+                    <div style="padding: 10px; background: #f5eef8; border-left: 4px solid #9b59b6; border-radius: 4px;">
+                        <strong>Em Rota:</strong> ${byStatus.enroute} pedidos
+                    </div>
+                    <div style="padding: 10px; background: #e8f5e9; border-left: 4px solid #27ae60; border-radius: 4px;">
+                        <strong>Entregues:</strong> ${byStatus.delivered} pedidos
+                    </div>
+                </div>
+            </div>
+    
+            <div class="report-details card" style="margin-top:12px">
+                <h4>💳 Formas de Pagamento</h4>
+                <ul style="list-style: none; padding: 0;">
+        `;
+    
+        const paymentMethodNames = {
+            'cash': '💵 Dinheiro',
+            'card': '💳 Cartão',
+            'pix': '📱 PIX',
+            'meal_voucher': '🍴 Vale Refeição'
+        };
+    
+        for (const [method, data] of Object.entries(byPaymentMethod)) {
+            const methodName = paymentMethodNames[method] || method;
+            html += `
+                <li style="padding: 10px; border-bottom: 1px solid #eee;">
+                    ${methodName}: <strong>${data.count} pedidos</strong> - ${formatCurrency(data.total)}
+                </li>
+            `;
+        }
+    
+        html += `</ul></div>`;
+    
+        if (avgDeliveryTime > 0) {
+            html += `
+                <div class="report-details card" style="margin-top:12px">
+                    <h4>⏱️ Tempo Médio de Entrega</h4>
+                    <div style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px; margin-top: 10px;">
+                        <div style="font-size: 2.5rem; font-weight: bold; color: #3498db;">
+                            ${avgDeliveryTime.toFixed(0)} min
+                        </div>
+                        <div style="color: #666; margin-top: 5px;">
+                            Baseado em ${deliveredOrders.length} entregas concluídas
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    
+        if (topProducts.length > 0) {
+            html += `
+                <div class="report-details card" style="margin-top:12px">
+                    <h4>🏆 Top 5 Produtos Mais Vendidos</h4>
+                    <ul style="list-style: none; padding: 0;">
+            `;
+    
+            topProducts.forEach(([name, data], index) => {
+                html += `
+                    <li style="padding: 12px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 1.5rem; font-weight: bold; color: #3498db; min-width: 30px;">
+                            ${index + 1}º
+                        </span>
+                        <div style="flex: 1;">
+                            <strong>${name}</strong>
+                            <div style="font-size: 0.9rem; color: #666;">
+                                ${data.quantity} unidades vendidas
+                            </div>
+                        </div>
+                        <div style="font-weight: bold; color: #27ae60;">
+                            ${formatCurrency(data.revenue)}
+                        </div>
+                    </li>
+                `;
+            });
+    
+            html += `</ul></div>`;
+        }
+    
+        resultsContainer.innerHTML = html;
+    
+        // Mostra controle de exportação PDF
+        this.showPdfOnlyControl({
+            label: `Relatório de Delivery - ${this.getPeriodLabel(period)}`,
+            data: {
+                generatedAt: new Date().toISOString(),
+                period,
+                type: 'delivery',
+                orders: deliveryOrders,
+                stats: {
+                    totalOrders,
+                    totalRevenue,
+                    totalPaid,
+                    pendingPayment,
+                    byStatus,
+                    byPaymentMethod,
+                    avgDeliveryTime,
+                    topProducts
+                }
+            }
+        });
+    
+        NotificationSystem.success("Relatório de delivery gerado com sucesso!");
     }
 }
 

@@ -511,29 +511,59 @@ export class PDVManager {
         const typeSelect = document.getElementById("pdv-type-selector");
         const tableInput = document.getElementById("pdv-table-input");
         const customerInput = document.getElementById("pdv-customer-input");
-
+        const phoneInput = document.getElementById("pdv-phone-input");
+        const addressInput = document.getElementById("pdv-address-input");
+    
         if (typeSelect) {
             typeSelect.addEventListener("change", (e) => {
-                this.currentOrder.type = e.target.value;
+                const selectedType = e.target.value;
+                this.currentOrder.type = selectedType;
+                
+                // Controla visibilidade dos campos
                 if (tableInput) {
-                    tableInput.style.display = e.target.value === "table" ? "inline-block" : "none";
+                    tableInput.style.display = selectedType === "table" ? "inline-block" : "none";
+                }
+                
+                if (phoneInput && addressInput) {
+                    const isDelivery = selectedType === "delivery";
+                    phoneInput.style.display = isDelivery ? "block" : "none";
+                    addressInput.style.display = isDelivery ? "block" : "none";
+                    
+                    // Limpa dados se mudar de tipo
+                    if (!isDelivery) {
+                        phoneInput.value = "";
+                        addressInput.value = "";
+                        this.currentOrder.phone = "";
+                        this.currentOrder.address = "";
+                    }
                 }
             });
         }
-
+    
         if (tableInput) {
             tableInput.addEventListener("input", (e) => {
                 this.currentOrder.tableNumber = parseInt(e.target.value) || 0;
             });
         }
-
+    
         if (customerInput) {
             customerInput.addEventListener("input", (e) => {
                 this.currentOrder.customerName = e.target.value;
             });
         }
+    
+        if (phoneInput) {
+            phoneInput.addEventListener("input", (e) => {
+                this.currentOrder.phone = e.target.value;
+            });
+        }
+    
+        if (addressInput) {
+            addressInput.addEventListener("input", (e) => {
+                this.currentOrder.address = e.target.value;
+            });
+        }
     }
-
     /**
      * Captura os dados quando o usuário confirma no modal (Novo Pedido)
      */
@@ -832,22 +862,40 @@ export class PDVManager {
             NotificationSystem.warning("Adicione itens ao pedido!");
             return;
         }
-
+    
         // Validação de permissão para mesas
         if (this.currentOrder.type === "table" && !authManager.hasPermission("mesas")) {
             NotificationSystem.error("Sem permissão para gerir mesas!");
             return;
         }
-
+    
+        // Validação para delivery
+        if (this.currentOrder.type === "delivery") {
+            if (!this.currentOrder.customerName || this.currentOrder.customerName.trim() === "") {
+                NotificationSystem.error("Nome do cliente é obrigatório para delivery!");
+                return;
+            }
+            if (!this.currentOrder.phone || this.currentOrder.phone.trim() === "") {
+                NotificationSystem.error("Telefone é obrigatório para delivery!");
+                return;
+            }
+            if (!this.currentOrder.address || this.currentOrder.address.trim() === "") {
+                NotificationSystem.error("Endereço de entrega é obrigatório!");
+                return;
+            }
+        }
+    
         const subtotal = calculateSubtotal(this.currentOrder.items);
         const serviceTax = calculateServiceTax(subtotal);
         const total = subtotal + serviceTax;
-
+    
         const newOrder = {
             id: Date.now(),
             type: this.currentOrder.type,
-            tableNumber: this.currentOrder.tableNumber,
+            tableNumber: this.currentOrder.type === "table" ? this.currentOrder.tableNumber : null,
             customerName: this.currentOrder.customerName,
+            phone: this.currentOrder.phone || null,
+            address: this.currentOrder.address || null,
             items: [...this.currentOrder.items],
             status: "pending",
             createdAt: new Date(),
@@ -857,23 +905,23 @@ export class PDVManager {
             waiter: authManager.getCurrentUser()?.name || "Balcão",
             paymentStatus: "pending"
         };
-
+    
         // Valida o pedido antes de finalizar
         const validationErrors = validateOrder(newOrder);
         if (validationErrors.length > 0) {
             NotificationSystem.error(validationErrors.join(', '));
             return;
         }
-
+    
         // Salva e atualiza sistema
         dataManager.orders.push(newOrder);
-
+    
         // Atualiza estoque
         this.currentOrder.items.forEach(item => {
             const inv = dataManager.inventory.find(i => i.productId === item.productId);
             if (inv) inv.currentStock -= item.quantity;
         });
-
+    
         // Se for mesa, marca como ocupada
         if (this.currentOrder.type === "table") {
             const mesa = dataManager.mesas.find(m => m.numero === this.currentOrder.tableNumber);
@@ -882,13 +930,24 @@ export class PDVManager {
                 mesa.pedidoId = newOrder.id;
             }
         }
-
+    
         this.currentOrder.items = [];
         this.updateOrderSummary();
         dataManager.saveAppData();
-
+    
         document.dispatchEvent(new CustomEvent('orderCreated', { detail: { order: newOrder } }));
-        NotificationSystem.success(`Pedido #${newOrder.id} finalizado!`);
+        
+        const orderTypeText = this.currentOrder.type === "table" ? `Mesa ${this.currentOrder.tableNumber}` : 
+                              this.currentOrder.type === "delivery" ? "Delivery" : "Balcão";
+        NotificationSystem.success(`Pedido #${newOrder.id} (${orderTypeText}) finalizado!`);
+        
+        // Limpa campos extras
+        const phoneInput = document.getElementById("pdv-phone-input");
+        const addressInput = document.getElementById("pdv-address-input");
+        if (phoneInput) phoneInput.value = "";
+        if (addressInput) addressInput.value = "";
+        this.currentOrder.phone = "";
+        this.currentOrder.address = "";
     }
 
     /**
