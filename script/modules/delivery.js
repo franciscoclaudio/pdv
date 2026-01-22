@@ -8,6 +8,24 @@ import { authManager } from './auth.js';
 import { formatCurrency, formatDateTime } from '../utils/helpers.js';
 import { ORDER_STATUS } from '../utils/constants.js';
 
+// ==========================================
+// ✅ UTILITÁRIOS DE CAIXA
+// ==========================================
+
+/**
+ * Verifica status do caixa
+ */
+function checkCaixaStatus() {
+    return dataManager.getStatusCaixa ? dataManager.getStatusCaixa() : "desconhecido";
+}
+
+/**
+ * Verifica permissões para abrir caixa
+ */
+function checkCaixaPermissions() {
+    const user = authManager.getCurrentUser();
+    return user && user.role === 'caixa'; // Apenas caixa pode abrir/fechar
+}
 
 /**
  * Gerenciador de Delivery
@@ -84,12 +102,12 @@ export class DeliveryManager {
         this.ordersCache = dataManager.orders
             .filter(order => order.type === 'delivery')
             .map(order => {
-                // Se a cozinha marcou como pronto, mostra como preparando para entrega
+                // ✅ CORREÇÃO: Detecta pedidos prontos na cozinha
                 if (order.kitchenStatus === 'pronto' && order.status === 'preparing') {
                     return {
                         ...order,
-                        displayStatus: 'preparing', // Para mostrar no delivery
-                        isReadyForDelivery: true // Flag para indicar que está pronto
+                        displayStatus: 'preparing',
+                        isReadyForDelivery: true  // Flag visual
                     };
                 }
                 return order;
@@ -406,6 +424,7 @@ export class DeliveryManager {
     
         return buttons.join('');
     }
+
     /**
      * Manipula ações dos botões
      */
@@ -492,7 +511,7 @@ export class DeliveryManager {
             return;
         }
     
-        // Abre modal de pagamento ao invés de marcar diretamente
+        // ✅ CHAMA O MÉTODO ATUALIZADO COM VALIDAÇÃO DE CAIXA
         this.showPaymentModal(orderId);
     }
 
@@ -638,6 +657,7 @@ export class DeliveryManager {
 
         return deliveryOrder;
     }
+
     /**
      * Mostra modal de pagamento para delivery
      */
@@ -647,20 +667,57 @@ export class DeliveryManager {
             NotificationSystem.error('Pedido não encontrado!');
             return;
         }
-    
+
         if (order.paymentStatus === 'paid') {
             NotificationSystem.info('Pedido já está marcado como pago!');
             return;
         }
-    
+
+        // ✅ VALIDAÇÃO DE CAIXA ANTES DE MOSTRAR O MODAL
+        const caixaStatus = checkCaixaStatus();
+        
+        if (caixaStatus !== "aberto") {
+            NotificationSystem.confirm(
+                `⚠️ O caixa está FECHADO!
+
+Este pagamento de delivery NÃO será contabilizado no fechamento do caixa.
+
+Deseja abrir o caixa agora?`,
+                "Abrir Caixa",
+                "Continuar Mesmo Assim"
+            ).then((abrirCaixa) => {
+                if (abrirCaixa) {
+                    // Redireciona para aba de caixa
+                    if (typeof navigationManager !== 'undefined') {
+                        navigationManager.goToTab("caixa");
+                    }
+                    NotificationSystem.info(
+                        "Abra o caixa e depois processe o pagamento do delivery novamente."
+                    );
+                } else {
+                    // Continua mas mostra modal com aviso
+                    this.showPaymentModalWithWarning(order);
+                }
+            });
+            return;
+        }
+
+        // Caixa aberto - mostra modal normal
+        this.showNormalPaymentModal(order);
+    }
+
+    /**
+     * ✅ NOVO: Modal de pagamento normal (caixa aberto)
+     */
+    showNormalPaymentModal(order) {
         const subtotal = order.subtotal || 0;
         const serviceTax = order.serviceTax || 0;
         const total = order.total || 0;
-    
+
         // Remove modal existente se houver
         const existingModal = document.getElementById("delivery-payment-modal");
         if (existingModal) existingModal.remove();
-    
+
         const modal = document.createElement("div");
         modal.className = "modal active";
         modal.id = "delivery-payment-modal";
@@ -689,7 +746,7 @@ export class DeliveryManager {
                             </div>
                         </div>
                     </div>
-    
+
                     <!-- Resumo do Pedido -->
                     <div class="payment-summary">
                         <h4>💰 Resumo do Pedido</h4>
@@ -706,7 +763,7 @@ export class DeliveryManager {
                             <span><strong>${formatCurrency(total)}</strong></span>
                         </div>
                     </div>
-    
+
                     <!-- Método de Pagamento -->
                     <div class="form-group">
                         <label for="delivery-payment-method">Método de Pagamento:</label>
@@ -717,7 +774,7 @@ export class DeliveryManager {
                             <option value="meal_voucher">🍴 Vale Refeição</option>
                         </select>
                     </div>
-    
+
                     <!-- Campo para Dinheiro -->
                     <div class="form-group" id="delivery-cash-group" style="display:none;">
                         <label for="delivery-amount-received">Valor Recebido:</label>
@@ -727,7 +784,7 @@ export class DeliveryManager {
                             <strong>Troco:</strong> <span id="delivery-change-amount">R$ 0,00</span>
                         </div>
                     </div>
-    
+
                     <!-- Campo para Cartão -->
                     <div class="form-group" id="delivery-card-group" style="display:none;">
                         <label for="delivery-card-installments">Parcelas:</label>
@@ -741,7 +798,7 @@ export class DeliveryManager {
                         </select>
                         <div id="delivery-installment-value" style="margin-top:10px;"></div>
                     </div>
-    
+
                     <!-- Info PIX -->
                     <div class="form-group" id="delivery-pix-group" style="display:none;">
                         <div style="text-align:center; padding:20px; background:#f8f9fa; border-radius:8px;">
@@ -752,7 +809,7 @@ export class DeliveryManager {
                             <p style="margin-top:15px; color:#666;">Aguardando confirmação do pagamento...</p>
                         </div>
                     </div>
-    
+
                     <!-- Campo Vale Refeição -->
                     <div class="form-group" id="delivery-voucher-group" style="display:none;">
                         <label for="delivery-voucher-code">Código do Vale:</label>
@@ -770,13 +827,154 @@ export class DeliveryManager {
                 </div>
             </div>
         `;
-    
+
         document.body.appendChild(modal);
-    
+
         // Configurar eventos do modal
         this.setupDeliveryPaymentModalEvents(modal, order, total);
     }
-    
+
+    /**
+     * ✅ NOVO: Modal de pagamento com aviso de caixa fechado
+     */
+    showPaymentModalWithWarning(order) {
+        const subtotal = order.subtotal || 0;
+        const serviceTax = order.serviceTax || 0;
+        const total = order.total || 0;
+
+        // Remove modal existente se houver
+        const existingModal = document.getElementById("delivery-payment-modal");
+        if (existingModal) existingModal.remove();
+
+        const modal = document.createElement("div");
+        modal.className = "modal active";
+        modal.id = "delivery-payment-modal";
+        modal.innerHTML = `
+            <div class="modal-content payment-modal">
+                <div class="modal-header">
+                    <h3>💳 Pagamento Delivery - Pedido #${order.id}</h3>
+                    <span class="close">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <!-- ✅ AVISO CRÍTICO PARA DELIVERY -->
+                    <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                            <span style="font-size: 2rem;">⚠️</span>
+                            <div>
+                                <strong style="color: #856404; font-size: 1.1rem;">CAIXA FECHADO - DELIVERY</strong>
+                                <p style="color: #856404; margin: 5px 0 0 0; font-size: 0.9rem;">
+                                    Este pagamento <strong>NÃO</strong> será contabilizado no fechamento do caixa!
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Informações do Cliente -->
+                    <div class="delivery-payment-info">
+                        <h4>📦 Informações do Pedido</h4>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Cliente:</span>
+                                <span class="info-value">${order.customerName || 'Não informado'}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Telefone:</span>
+                                <span class="info-value">${order.phone || 'Não informado'}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Endereço:</span>
+                                <span class="info-value">${order.address || 'Não informado'}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resumo do Pedido -->
+                    <div class="payment-summary">
+                        <h4>💰 Resumo do Pedido</h4>
+                        <div class="summary-line">
+                            <span>Subtotal:</span>
+                            <span>${formatCurrency(subtotal)}</span>
+                        </div>
+                        <div class="summary-line">
+                            <span>Taxa de Serviço (10%):</span>
+                            <span>${formatCurrency(serviceTax)}</span>
+                        </div>
+                        <div class="summary-line total">
+                            <span><strong>Total a Pagar:</strong></span>
+                            <span><strong>${formatCurrency(total)}</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Método de Pagamento -->
+                    <div class="form-group">
+                        <label for="delivery-payment-method">Método de Pagamento:</label>
+                        <select id="delivery-payment-method" class="form-control">
+                            <option value="cash">💵 Dinheiro</option>
+                            <option value="card">💳 Cartão</option>
+                            <option value="pix">📱 PIX</option>
+                            <option value="meal_voucher">🍴 Vale Refeição</option>
+                        </select>
+                    </div>
+
+                    <!-- Campo para Dinheiro -->
+                    <div class="form-group" id="delivery-cash-group" style="display:none;">
+                        <label for="delivery-amount-received">Valor Recebido:</label>
+                        <input type="number" id="delivery-amount-received" class="form-control" 
+                               step="0.01" min="${total}" value="${total}">
+                        <div id="delivery-change-display" style="margin-top:10px; display:none;">
+                            <strong>Troco:</strong> <span id="delivery-change-amount">R$ 0,00</span>
+                        </div>
+                    </div>
+
+                    <!-- Campo para Cartão -->
+                    <div class="form-group" id="delivery-card-group" style="display:none;">
+                        <label for="delivery-card-installments">Parcelas:</label>
+                        <select id="delivery-card-installments" class="form-control">
+                            <option value="1">À vista</option>
+                            <option value="2">2x sem juros</option>
+                            <option value="3">3x sem juros</option>
+                            <option value="4">4x sem juros</option>
+                            <option value="5">5x sem juros</option>
+                            <option value="6">6x sem juros</option>
+                        </select>
+                        <div id="delivery-installment-value" style="margin-top:10px;"></div>
+                    </div>
+
+                    <!-- Info PIX -->
+                    <div class="form-group" id="delivery-pix-group" style="display:none;">
+                        <div style="text-align:center; padding:20px; background:#f8f9fa; border-radius:8px;">
+                            <p><strong>Chave PIX:</strong></p>
+                            <p style="font-size:1.2rem; font-weight:700; color:var(--primary-color);">
+                                restaurant@pix.com.br
+                            </p>
+                            <p style="margin-top:15px; color:#666;">Aguardando confirmação do pagamento...</p>
+                        </div>
+                    </div>
+
+                    <!-- Campo Vale Refeição -->
+                    <div class="form-group" id="delivery-voucher-group" style="display:none;">
+                        <label for="delivery-voucher-code">Código do Vale:</label>
+                        <input type="text" id="delivery-voucher-code" class="form-control" 
+                               placeholder="Digite o código do vale">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancel-delivery-payment">
+                        Cancelar
+                    </button>
+                    <button type="button" class="btn btn-warning" id="confirm-delivery-payment" style="background-color: #ffc107; border-color: #ffc107;">
+                        ⚠️ Confirmar (Caixa Fechado)
+                    </button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Configurar eventos do modal com caixa fechado
+        this.setupDeliveryPaymentModalEventsWithWarning(modal, order, total);
+    }
+
     /**
      * Configura eventos do modal de pagamento delivery
      */
@@ -794,7 +992,7 @@ export class DeliveryManager {
         const closeBtn = modal.querySelector(".close");
         const cancelBtn = modal.querySelector("#cancel-delivery-payment");
         const confirmBtn = modal.querySelector("#confirm-delivery-payment");
-    
+
         // Atualiza grupos de pagamento
         const updatePaymentGroups = () => {
             const method = paymentMethodSelect.value;
@@ -803,7 +1001,7 @@ export class DeliveryManager {
             cardGroup.style.display = "none";
             pixGroup.style.display = "none";
             voucherGroup.style.display = "none";
-    
+
             if (method === "cash") {
                 cashGroup.style.display = "block";
                 if (amountReceivedInput) amountReceivedInput.value = total.toFixed(2);
@@ -816,7 +1014,7 @@ export class DeliveryManager {
                 voucherGroup.style.display = "block";
             }
         };
-    
+
         // Atualiza valor das parcelas
         const updateInstallmentValue = () => {
             const installments = parseInt(cardInstallments.value);
@@ -825,7 +1023,7 @@ export class DeliveryManager {
                 installmentValue.innerHTML = `<strong>Valor por parcela:</strong> ${formatCurrency(valuePerInstallment)}`;
             }
         };
-    
+
         // Calcula troco
         const calculateChange = () => {
             if (amountReceivedInput) {
@@ -835,28 +1033,66 @@ export class DeliveryManager {
                 if (changeDisplay) changeDisplay.style.display = change > 0 ? "block" : "none";
             }
         };
-    
+
         // Fecha modal
         const closeModal = () => {
             modal.classList.remove("active");
             setTimeout(() => modal.remove(), 300);
         };
-    
+
         // Event listeners
         paymentMethodSelect.addEventListener("change", updatePaymentGroups);
         if (amountReceivedInput) amountReceivedInput.addEventListener("input", calculateChange);
         if (cardInstallments) cardInstallments.addEventListener("change", updateInstallmentValue);
-    
+
         closeBtn.addEventListener("click", closeModal);
         cancelBtn.addEventListener("click", closeModal);
-    
+
         confirmBtn.addEventListener("click", () => {
             this.processDeliveryPayment(modal, order, total, closeModal);
         });
-    
+
         updatePaymentGroups();
     }
-    
+
+    /**
+     * ✅ NOVO: Configura eventos do modal com caixa fechado
+     */
+    setupDeliveryPaymentModalEventsWithWarning(modal, order, total) {
+        // Reutiliza a configuração normal, mas com comportamento específico
+        this.setupDeliveryPaymentModalEvents(modal, order, total);
+        
+        // Adiciona comportamento extra para o botão de confirmação
+        const confirmBtn = modal.querySelector("#confirm-delivery-payment");
+        
+        // Remove o listener original
+        confirmBtn.replaceWith(confirmBtn.cloneNode(true));
+        const newConfirmBtn = modal.querySelector("#confirm-delivery-payment");
+        
+        newConfirmBtn.onclick = () => {
+            // Adiciona confirmação extra
+            NotificationSystem.confirm(
+                `⚠️ ATENÇÃO: O caixa está FECHADO!
+                
+Este pagamento NÃO será registrado no sistema de caixa.
+
+Deseja realmente processar o pagamento?`,
+                "Sim, Processar",
+                "Cancelar"
+            ).then((confirmar) => {
+                if (confirmar) {
+                    // Chama o processamento normal
+                    this.processDeliveryPayment(modal, order, total, 
+                        () => {
+                            modal.classList.remove("active");
+                            setTimeout(() => modal.remove(), 300);
+                        }
+                    );
+                }
+            });
+        };
+    }
+
     /**
      * Processa pagamento do delivery
      */
@@ -865,22 +1101,22 @@ export class DeliveryManager {
         const amountReceivedInput = modal.querySelector("#delivery-amount-received");
         const voucherCodeInput = modal.querySelector("#delivery-voucher-code");
         const cardInstallments = modal.querySelector("#delivery-card-installments");
-    
+
         const amountReceived = parseFloat(amountReceivedInput?.value) || total;
         const voucherCode = voucherCodeInput ? voucherCodeInput.value.trim() : "";
         const installments = paymentMethod === "card" ? parseInt(cardInstallments.value) : 1;
-    
+
         // Validações
         if (paymentMethod === "cash" && amountReceived < total) {
             NotificationSystem.error("Valor recebido é menor que o total!");
             return;
         }
-    
+
         if (paymentMethod === "meal_voucher" && !voucherCode) {
             NotificationSystem.error("Código do vale é obrigatório!");
             return;
         }
-    
+
         // Atualiza pedido
         const orderToUpdate = dataManager.orders.find(o => o.id === order.id);
         if (!orderToUpdate) {
@@ -888,7 +1124,7 @@ export class DeliveryManager {
             closeModal();
             return;
         }
-    
+
         orderToUpdate.paymentStatus = "paid";
         orderToUpdate.paymentMethod = paymentMethod;
         orderToUpdate.paymentDate = new Date();
@@ -902,9 +1138,16 @@ export class DeliveryManager {
         if (paymentMethod === "meal_voucher") {
             orderToUpdate.voucherCode = voucherCode;
         }
-    
+
+        // ✅ VERIFICA SE O CAIXA ESTÁ ABERTO ANTES DE CONTABILIZAR
+        const caixaStatus = checkCaixaStatus();
+        if (caixaStatus === "aberto" && typeof dataManager.registrarPagamentoNoCaixa === "function") {
+            // Registra o pagamento no caixa
+            dataManager.registrarPagamentoNoCaixa(order.id, total, paymentMethod);
+        }
+
         dataManager.saveAppData();
-    
+
         // Mensagem de sucesso
         const methodNames = {
             'cash': 'Dinheiro',
@@ -922,23 +1165,25 @@ export class DeliveryManager {
         if (paymentMethod === "card" && installments > 1) {
             message += `\n📊 ${installments}x de ${formatCurrency(total / installments)}`;
         }
-    
+
         NotificationSystem.success(message, 7000);
-    
+
         // Dispara eventos de atualização
-        document.dispatchEvent(new CustomEvent('caixaUpdated', {
-            detail: {
-                orderId: order.id,
-                amount: total,
-                method: paymentMethod
-            }
-        }));
+        if (caixaStatus === "aberto") {
+            document.dispatchEvent(new CustomEvent('caixaUpdated', {
+                detail: {
+                    orderId: order.id,
+                    amount: total,
+                    method: paymentMethod
+                }
+            }));
+        }
         
         document.dispatchEvent(new Event('ordersUpdated'));
-    
+
         // Atualiza view do delivery
         this.updateView();
-    
+
         closeModal();
     }
 }

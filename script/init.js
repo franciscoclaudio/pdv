@@ -232,9 +232,6 @@ function setupGlobalEventListeners() {
             
             // 3. Configura pdvManager com os dados da mesa
             if (pdvManager) {
-                // Limpa o pedido atual
-                pdvManager.currentOrder.items = [];
-                
                 // Define os dados básicos da mesa
                 pdvManager.setOrderData({
                     type: "table",
@@ -242,47 +239,31 @@ function setupGlobalEventListeners() {
                     customerName: ""
                 });
                 
-                // 4. Carrega o pedido existente se houver
+                // 4. Carrega o pedido existente se houver (MODO EDIÇÃO)
                 let pedidoParaCarregar = null;
                 
                 if (pedidoId) {
-                    // Usa o pedidoId fornecido
                     pedidoParaCarregar = dataManager.orders.find(o => o.id === pedidoId);
                 } else if (mesa.pedidoId && mesa.status === "ocupada") {
-                    // Usa o pedidoId da mesa
                     pedidoParaCarregar = dataManager.orders.find(o => o.id === mesa.pedidoId);
                 }
                 
                 if (pedidoParaCarregar) {
-                    // Limpa itens atuais (redundante, mas seguro)
-                    pdvManager.currentOrder.items = [];
+                    // ✅ USA O NOVO MÉTODO DE EDIÇÃO
+                    const loaded = pdvManager.loadExistingOrderForEdit(pedidoParaCarregar.id);
                     
-                    // Adiciona itens do pedido
-                    pedidoParaCarregar.items.forEach(item => {
-                        const product = dataManager.products.find(p => p.id === item.productId);
-                        if (product) {
-                            for (let i = 0; i < item.quantity; i++) {
-                                pdvManager.addToOrder(product);
-                            }
-                        }
-                    });
-                    
-                    // Atualiza dados do cliente
-                    if (pedidoParaCarregar.customerName) {
-                        pdvManager.currentOrder.customerName = pedidoParaCarregar.customerName;
+                    if (loaded) {
+                        console.log(`Pedido #${pedidoParaCarregar.id} carregado para edição`);
+                    } else {
+                        console.error('Falha ao carregar pedido para edição');
+                        NotificationSystem.error('Erro ao carregar pedido');
                     }
-                    
-                    console.log(`Pedido #${pedidoParaCarregar.id} carregado para edição`);
-                    NotificationSystem.info(`Pedido #${pedidoParaCarregar.id} carregado para edição`);
                 } else {
                     console.log(`Novo pedido para Mesa ${mesaNumero}`);
                     NotificationSystem.success(`Mesa ${mesaNumero} configurada para novo pedido`);
                 }
                 
-                // Atualiza o resumo
-                pdvManager.updateOrderSummary();
-                
-                // 5. Sincroniza campos visuais - CORREÇÃO AQUI
+                // 5. Sincroniza campos visuais
                 syncPDVInputs(mesaNumero, pedidoParaCarregar);
             }
         }, 400);

@@ -329,7 +329,7 @@ export class EmployeesManager {
         </div>
     `;
 
-        NotificationSystem.show(message, "info", 8000);
+        NotificationSystem.showHTML(message, "info", 8000);
     }
 }
 

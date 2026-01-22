@@ -664,7 +664,103 @@ export class ModalsManager {
             this.showPaymentModal(pedido);
         }, 300);
     }
-
+    showPaymentModalWithWarning(order) {
+        // Continua com modal normal, mas adiciona aviso visual
+        const subtotal = calculateSubtotal(order.items);
+        const serviceTax = calculateServiceTax(subtotal);
+        const total = subtotal + serviceTax;
+    
+        const existingModal = document.getElementById("payment-modal-dynamic");
+        if (existingModal) existingModal.remove();
+    
+        const modal = document.createElement("div");
+        modal.className = "modal active";
+        modal.id = "payment-modal-dynamic";
+        modal.innerHTML = `
+            <div class="modal-content payment-modal">
+                <div class="modal-header">
+                    <h3>Processar Pagamento - Pedido #${order.id}</h3>
+                    <span class="close">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <!-- ✅ AVISO CRÍTICO -->
+                    <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                            <span style="font-size: 2rem;">⚠️</span>
+                            <strong style="color: #856404; font-size: 1.1rem;">CAIXA FECHADO</strong>
+                        </div>
+                        <p style="color: #856404; margin: 0; font-size: 0.9rem;">
+                            Este pagamento <strong>NÃO</strong> será contabilizado no fechamento do caixa!
+                        </p>
+                    </div>
+    
+                    <div class="payment-summary">
+                        <h4>Resumo do Pedido</h4>
+                        <div class="summary-line">
+                            <span>Subtotal:</span>
+                            <span>${formatCurrency(subtotal)}</span>
+                        </div>
+                        <div class="summary-line">
+                            <span>Taxa de Serviço (10%):</span>
+                            <span>${formatCurrency(serviceTax)}</span>
+                        </div>
+                        <div class="summary-line total">
+                            <span><strong>Total a Pagar:</strong></span>
+                            <span><strong>${formatCurrency(total)}</strong></span>
+                        </div>
+                    </div>
+    
+                    <div class="form-group">
+                        <label for="payment-method">Método de Pagamento:</label>
+                        <select id="payment-method" class="form-control">
+                            ${PAYMENT_METHODS.map(m => `<option value="${m.id}">${m.name}</option>`).join('')}
+                        </select>
+                    </div>
+    
+                    <div class="form-group" id="cash-group" style="display:none;">
+                        <label for="amount-received">Valor Recebido:</label>
+                        <input type="number" id="amount-received" class="form-control" step="0.01" min="${total}" value="${total}">
+                        <div id="change-display" style="margin-top:10px; display:none;">
+                            <strong>Troco:</strong> <span id="change-amount">R$ 0,00</span>
+                        </div>
+                    </div>
+    
+                    <div class="form-group" id="card-group" style="display:none;">
+                        <label for="card-installments">Parcelas:</label>
+                        <select id="card-installments" class="form-control">
+                            <option value="1">À vista</option>
+                            <option value="2">2x sem juros</option>
+                            <option value="3">3x sem juros</option>
+                            <option value="4">4x sem juros</option>
+                            <option value="5">5x sem juros</option>
+                            <option value="6">6x sem juros</option>
+                        </select>
+                        <div id="installment-value" style="margin-top:10px;"></div>
+                    </div>
+    
+                    <div class="form-group" id="pix-group" style="display:none;">
+                        <div style="text-align:center; padding:20px; background:#f8f9fa; border-radius:8px;">
+                            <p><strong>Chave PIX:</strong></p>
+                            <p style="font-size:1.2rem; font-weight:700; color:var(--primary-color);">restaurant@pix.com.br</p>
+                            <p style="margin-top:15px; color:#666;">Aguardando confirmação do pagamento...</p>
+                        </div>
+                    </div>
+    
+                    <div class="form-group" id="voucher-group" style="display:none;">
+                        <label for="voucher-code">Código do Vale:</label>
+                        <input type="text" id="voucher-code" class="form-control" placeholder="Digite o código do vale">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancel-payment-dynamic">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="confirm-payment-dynamic">Confirmar Pagamento</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    
+        this.setupPaymentModalEvents(modal, order, total);
+    }
     /**
      * Mostra modal de pagamento
      */
@@ -672,6 +768,35 @@ export class ModalsManager {
         if (!order || !order.items || !Array.isArray(order.items)) {
             NotificationSystem.error("Pedido inválido");
             return;
+        }
+    
+        // ✅ CORREÇÃO: Valida se o caixa está aberto
+        const caixaStatus = dataManager.getStatusCaixa();
+        
+        if (caixaStatus !== "aberto") {
+            NotificationSystem.confirm(
+                `⚠️ O caixa está FECHADO!
+    
+    Este pagamento não será contabilizado no fechamento do caixa.
+    
+    Deseja abrir o caixa agora?`,
+                "Abrir Caixa",
+                "Continuar Mesmo Assim"
+            ).then((abrirCaixa) => {
+                if (abrirCaixa) {
+                    // Redireciona para aba de caixa
+                    if (typeof navigationManager !== 'undefined') {
+                        navigationManager.goToTab("caixa");
+                    }
+                    NotificationSystem.info(
+                        "Abra o caixa e depois processe o pagamento novamente."
+                    );
+                } else {
+                    // Continua mas mostra aviso persistente
+                    this.showPaymentModalWithWarning(order);
+                }
+            });
+            return; // Interrompe execução normal
         }
 
         const subtotal = calculateSubtotal(order.items);

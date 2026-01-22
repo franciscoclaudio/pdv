@@ -6,7 +6,7 @@
     <meta name="description" content="Sistema PDV para Restaurantes e Bares" />
     <title>Sistema PDV - Restaurantes & Bares</title>
     <!-- link rel="stylesheet" href="style.css" /-->
-    <link rel="stylesheet" href="style_index.css" />
+    <link rel="stylesheet" href="style.css" />
 </head>
 <body>
     <!-- Tela de Login -->
@@ -24,7 +24,7 @@
                 </div>
                 <div class="form-group">
                     <label for="password">Senha:</label>
-                    <input type="password" id="password" name="password" required />
+                    <input type="password" id="password" name="password" required autocomplete="current-password">
                 </div>
                 <button type="submit" class="btn btn-primary btn-block">
                     Entrar
@@ -732,7 +732,7 @@
                                     <div class="form-group">
                                         <label for="employee-confirm-password">Confirmar senha</label>
                                         <div class="password-input-wrapper">
-                                            <input type="password" id="employee-confirm-password" class="form-control" placeholder="Confirme a senha" required>
+                                            <input type="password" id="employee-confirm-password" class="form-control" placeholder="Confirme a senha" required autocomplete="new-password">
                                             <button type="button" class="toggle-password" data-target="employee-confirm-password">
                                                 <span class="eye-icon">👁️</span>
                                             </button>

@@ -143,7 +143,8 @@ export class DataManager {
             this.mesas = Array.isArray(data.mesas) && data.mesas.length > 0 
                 ? data.mesas 
                 : this.initializeTables();
-                
+            this.recoverStuckTables();
+   
             this.products = Array.isArray(data.products) && data.products.length > 0 
                 ? data.products 
                 : [];
@@ -199,7 +200,51 @@ export class DataManager {
             pedidoId: null
         }));
     }
-
+    /**
+     * ✅ NOVO: Recupera mesas que ficaram travadas em "limpando"
+     */
+    recoverStuckTables() {
+        if (!Array.isArray(this.mesas)) return;
+        
+        let recovered = 0;
+        const now = Date.now();
+        const TIMEOUT = 5 * 60 * 1000; // 5 minutos
+        
+        this.mesas.forEach(mesa => {
+            if (mesa.status === "limpando") {
+                // Procura o pedido associado
+                const pedido = this.orders.find(o => o.id === mesa.pedidoId);
+                
+                if (!pedido) {
+                    // Sem pedido: libera mesa
+                    console.log(`🔧 Recuperando Mesa ${mesa.numero}: sem pedido associado`);
+                    mesa.status = "livre";
+                    mesa.pedidoId = null;
+                    recovered++;
+                } else if (pedido.paymentStatus === "paid" || pedido.paymentStatus === "closed") {
+                    // Pedido pago há muito tempo: libera mesa
+                    const timeSincePaid = now - new Date(pedido.paymentDate || pedido.updatedAt).getTime();
+                    
+                    if (timeSincePaid > TIMEOUT) {
+                        console.log(`🔧 Recuperando Mesa ${mesa.numero}: limpeza expirou (${Math.round(timeSincePaid/60000)} min)`);
+                        mesa.status = "livre";
+                        mesa.pedidoId = null;
+                        recovered++;
+                    }
+                } else {
+                    // Pedido não pago: volta para ocupada
+                    console.log(`🔧 Recuperando Mesa ${mesa.numero}: pedido não finalizado`);
+                    mesa.status = "ocupada";
+                    recovered++;
+                }
+            }
+        });
+        
+        if (recovered > 0) {
+            console.log(`✅ ${recovered} mesa(s) recuperada(s) do estado "limpando"`);
+            this.saveAppData();
+        }
+    }   
     /**
      * Exporta backup dos dados
      */
@@ -234,7 +279,7 @@ export class DataManager {
     }
 
     /**
-     * Importa backup
+     * Importa backup - CORRIGIDO COM VALIDAÇÃO DE VERSÃO
      */
     importData(file, onSuccess) {
         const reader = new FileReader();
@@ -242,56 +287,88 @@ export class DataManager {
         reader.onload = (e) => {
             try {
                 const data = JSON.parse(e.target.result);
-
+    
+                // ✅ VALIDAÇÃO BÁSICA
                 if (!validateAppData(data)) {
-                    NotificationSystem.show("Arquivo de backup inválido", "error");
+                    NotificationSystem.error("Arquivo de backup inválido ou corrompido");
                     return;
                 }
-
+    
+                // ✅ VALIDAÇÃO DE VERSÃO
+                const currentVersion = CONFIG.APP_VERSION;
+                const backupVersion = data.version || "1.0";
+                
+                if (backupVersion !== currentVersion) {
+                    NotificationSystem.confirm(
+                        `⚠️ Versão do backup diferente!
+    
+    Backup: v${backupVersion}
+    Sistema: v${currentVersion}
+    
+    A importação pode causar problemas de compatibilidade. Deseja continuar mesmo assim?`,
+                        "Continuar",
+                        "Cancelar"
+                    ).then((confirmed) => {
+                        if (confirmed) {
+                            this.performImport(data, onSuccess);
+                        }
+                    });
+                    return;
+                }
+    
+                // ✅ CONFIRMAÇÃO PADRÃO
                 NotificationSystem.confirm(
                     "Deseja substituir os dados atuais? Esta ação não pode ser desfeita.",
                     "Importar",
                     "Cancelar"
                 ).then((confirmed) => {
                     if (confirmed) {
-                        this.orders = data.orders || [];
-                        this.mesas = data.mesas || this.initializeTables();
-                        this.products = data.products || [];
-                        this.inventory = data.inventory || [];
-                        this.comandas = data.comandas || [];
-                        this.employees = data.employees || [];
-                        this.caixa = data.caixa || {
-                            status: "fechado",
-                            abertura: null,
-                            fechamento: null,
-                            saldoInicial: 0,
-                            saldoFinal: 0,
-                            responsavelAbertura: null,
-                            responsavelFechamento: null,
-                            resumo: null,
-                            movimentacoes: []
-                        };
-
-                        this.saveAppData();
-                        
-                        if (onSuccess) {
-                            onSuccess();
-                        }
-
-                        NotificationSystem.show("Dados importados com sucesso!", "success");
+                        this.performImport(data, onSuccess);
                     }
                 });
+                
             } catch (error) {
-                NotificationSystem.show("Erro: arquivo corrompido", "error");
+                NotificationSystem.error("Erro: arquivo corrompido ou inválido");
                 console.error("Erro na importação:", error);
             }
         };
         
         reader.onerror = () => {
-            NotificationSystem.show("Erro ao ler arquivo", "error");
+            NotificationSystem.error("Erro ao ler arquivo");
         };
         
         reader.readAsText(file);
+    }
+    
+    /**
+     * ✅ NOVO: Executa a importação
+     */
+    performImport(data, onSuccess) {
+        this.orders = data.orders || [];
+        this.mesas = data.mesas || this.initializeTables();
+        this.products = data.products || [];
+        this.inventory = data.inventory || [];
+        this.comandas = data.comandas || [];
+        this.employees = data.employees || [];
+        this.caixa = data.caixa || {
+            status: "fechado",
+            abertura: null,
+            fechamento: null,
+            saldoInicial: 0,
+            saldoFinal: 0,
+            responsavelAbertura: null,
+            responsavelFechamento: null,
+            resumo: null,
+            movimentacoes: []
+        };
+    
+        this.saveAppData();
+        
+        if (onSuccess) {
+            onSuccess();
+        }
+    
+        NotificationSystem.success("Dados importados com sucesso!");
     }
 
     /**

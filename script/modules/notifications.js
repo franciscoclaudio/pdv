@@ -43,7 +43,56 @@ export class NotificationSystem {
 
         return notification;
     }
-
+    static alert(message, title = "Atenção", confirmText = "OK") {
+        return new Promise((resolve) => {
+            const overlay = document.createElement("div");
+            overlay.className = "notification-overlay";
+    
+            const dialog = document.createElement("div");
+            dialog.className = "notification-dialog";
+            dialog.innerHTML = `
+                <div class="dialog-content">
+                    ${title ? `<h4 style="margin-top: 0;">${escapeHtml(title)}</h4>` : ''}
+                    <p style="white-space: pre-line;">${escapeHtml(message)}</p>
+                    <div class="dialog-actions" style="justify-content: center;">
+                        <button class="btn btn-primary" id="dialog-ok">
+                            ${escapeHtml(confirmText)}
+                        </button>
+                    </div>
+                </div>
+            `;
+    
+            overlay.appendChild(dialog);
+            document.body.appendChild(overlay);
+    
+            setTimeout(() => {
+                overlay.classList.add("show");
+                dialog.classList.add("show");
+            }, 10);
+    
+            const cleanup = () => {
+                overlay.classList.remove("show");
+                setTimeout(() => overlay.remove(), 300);
+                resolve(true);
+            };
+    
+            document.getElementById("dialog-ok").onclick = cleanup;
+            
+            overlay.onclick = (e) => {
+                if (e.target === overlay) {
+                    cleanup();
+                }
+            };
+            
+            // Adiciona tecla Enter para fechar
+            document.addEventListener('keydown', function handleKeyPress(e) {
+                if (e.key === 'Enter' || e.key === 'Escape') {
+                    document.removeEventListener('keydown', handleKeyPress);
+                    cleanup();
+                }
+            });
+        });
+    }
     /**
      * Mostra diálogo de confirmação
      */
@@ -231,7 +280,41 @@ export class NotificationSystem {
 
         return loading;
     }
-
+    /**
+     * Mostra diálogo com HTML customizado
+     */
+    static showHTML(htmlContent, type = "info", duration = 5000) {
+        // Remove notificações existentes
+        const existing = document.querySelectorAll(".notification");
+        existing.forEach((notif) => notif.remove());
+    
+        const notification = document.createElement("div");
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `
+            <div class="notification-content">
+                <span class="notification-message">${htmlContent}</span>
+                <button class="notification-close" aria-label="Fechar">×</button>
+            </div>
+        `;
+    
+        document.body.appendChild(notification);
+    
+        const closeBtn = notification.querySelector(".notification-close");
+        closeBtn.addEventListener("click", () => notification.remove());
+    
+        // Mostra com animação
+        setTimeout(() => notification.classList.add("show"), 10);
+    
+        // Remove automaticamente
+        if (duration > 0) {
+            setTimeout(() => {
+                notification.classList.remove("show");
+                setTimeout(() => notification.remove(), 300);
+            }, duration);
+        }
+    
+        return notification;
+    }
     /**
      * Esconde loading
      */

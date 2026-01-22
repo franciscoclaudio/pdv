@@ -137,33 +137,45 @@ export class KitchenManager {
         return buttons;
     }
 
-    /**
-     * Trata ações
-     */
     handleAction(orderId, action) {
         const order = dataManager.orders.find(o => o.id === orderId);
         if (!order) {
             NotificationSystem.error("Pedido não encontrado");
             return;
         }
-
+    
         switch (action) {
             case "start":
                 order.status = "preparing";
                 order.updatedAt = new Date();
                 NotificationSystem.success("Preparo iniciado!");
                 break;
-
+    
             case "ready":
-                order.status = "ready";
+                // ✅ CORREÇÃO: Sistema duplo de status
+                order.kitchenStatus = "pronto";  // Flag da cozinha
                 order.updatedAt = new Date();
-                NotificationSystem.success("Pedido pronto!");
+                
+                // Se for delivery, mantém status "preparing" mas adiciona flag
+                if (order.type === "delivery") {
+                    // Status principal permanece "preparing" para o delivery ver
+                    order.status = "preparing";
+                    order.readyForDelivery = true;  // Flag especial
+                    
+                    NotificationSystem.success(
+                        `Pedido #${orderId} pronto! Aguardando retirada para entrega.`
+                    );
+                } else {
+                    // Para mesa/balcão, pode usar "ready" normalmente
+                    order.status = "ready";
+                    NotificationSystem.success("Pedido pronto!");
+                }
                 break;
         }
-
+    
         dataManager.saveAppData();
         this.updateView();
-
+    
         // Dispara evento
         document.dispatchEvent(new Event('ordersUpdated'));
     }

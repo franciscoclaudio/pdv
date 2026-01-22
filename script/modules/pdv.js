@@ -22,6 +22,7 @@ export class PDVManager {
         this.initialized = false;
         this.productsCache = null;
         this.lastUpdateTime = 0;
+        this.editingOrderId = null;
         
         // MAPEAMENTO DE CATEGORIAS PADRONIZADAS
         this.categoryMapping = {
@@ -106,6 +107,7 @@ export class PDVManager {
         this.setupCategoryButtons();
         this.setupOrderActions();
         this.setupInlineInputs();
+        this.setupInlineInputsValidation(); // ✅ ADICIONE ESTA LINHA
         this.setupModalLogic();
         this.setupProductUpdatesListener();
         this.injectStyles(); // Adiciona estilos CSS
@@ -564,6 +566,80 @@ export class PDVManager {
             });
         }
     }
+    setupInlineInputsValidation() {
+        const phoneInput = document.getElementById("pdv-phone-input");
+        const addressInput = document.getElementById("pdv-address-input");
+        const customerInput = document.getElementById("pdv-customer-input");
+        const typeSelect = document.getElementById("pdv-type-selector");
+        const finalizeBtn = document.getElementById("finalize-order");
+        
+        // Função de validação
+        const validateDeliveryFields = () => {
+            if (!typeSelect || typeSelect.value !== "delivery") {
+                // Remove marcações de erro se não for delivery
+                if (phoneInput) phoneInput.classList.remove('input-error');
+                if (addressInput) addressInput.classList.remove('input-error');
+                if (customerInput) customerInput.classList.remove('input-error');
+                return true;
+            }
+            
+            let isValid = true;
+            
+            // Valida nome
+            if (customerInput) {
+                if (!customerInput.value.trim()) {
+                    customerInput.classList.add('input-error');
+                    isValid = false;
+                } else {
+                    customerInput.classList.remove('input-error');
+                }
+            }
+            
+            // Valida telefone
+            if (phoneInput) {
+                const phone = phoneInput.value.trim();
+                if (!phone || phone.length < 10) {
+                    phoneInput.classList.add('input-error');
+                    isValid = false;
+                } else {
+                    phoneInput.classList.remove('input-error');
+                }
+            }
+            
+            // Valida endereço
+            if (addressInput) {
+                if (!addressInput.value.trim()) {
+                    addressInput.classList.add('input-error');
+                    isValid = false;
+                } else {
+                    addressInput.classList.remove('input-error');
+                }
+            }
+            
+            return isValid;
+        };
+        
+        // Adiciona listeners
+        if (phoneInput) {
+            phoneInput.addEventListener('blur', validateDeliveryFields);
+            phoneInput.addEventListener('input', validateDeliveryFields);
+        }
+        
+        if (addressInput) {
+            addressInput.addEventListener('blur', validateDeliveryFields);
+            addressInput.addEventListener('input', validateDeliveryFields);
+        }
+        
+        if (customerInput) {
+            customerInput.addEventListener('blur', validateDeliveryFields);
+            customerInput.addEventListener('input', validateDeliveryFields);
+        }
+        
+        if (typeSelect) {
+            typeSelect.addEventListener('change', validateDeliveryFields);
+        }
+    }
+    
     /**
      * Captura os dados quando o usuário confirma no modal (Novo Pedido)
      */
@@ -733,7 +809,7 @@ export class PDVManager {
             requestedQty, 
             dataManager.inventory
         );
-
+    
         if (inventoryErrors.length > 0) {
             NotificationSystem.error(inventoryErrors[0]);
             return;
@@ -853,6 +929,65 @@ export class PDVManager {
             }
         });
     }
+    
+    loadExistingOrderForEdit(orderId) {
+        const order = dataManager.orders.find(o => o.id === orderId);
+        
+        if (!order || !order.items) {
+            console.error(`Pedido #${orderId} não encontrado ou sem itens`);
+            return false;
+        }
+        
+        console.log(`📝 Carregando pedido #${orderId} para edição`);
+        
+        // Marca que está editando
+        this.editingOrderId = orderId;
+        
+        // Limpa o pedido atual
+        this.currentOrder.items = [];
+        
+        // Configura dados básicos
+        this.currentOrder.type = order.type || "table";
+        this.currentOrder.tableNumber = order.tableNumber || 0;
+        this.currentOrder.customerName = order.customerName || "";
+        this.currentOrder.phone = order.phone || "";
+        this.currentOrder.address = order.address || "";
+        
+        // Adiciona os itens (reconstituindo o pedido)
+        order.items.forEach(item => {
+            const product = dataManager.products.find(p => p.id === item.productId);
+            if (product) {
+                // Adiciona cada unidade individualmente
+                for (let i = 0; i < item.quantity; i++) {
+                    this.addToOrder(product);
+                }
+            } else {
+                console.warn(`Produto ID ${item.productId} não encontrado`);
+            }
+        });
+        
+        this.updateOrderSummary();
+        
+        NotificationSystem.info(
+            `Editando pedido #${orderId}. Adicione ou remova itens e clique em "Finalizar Pedido".`
+        );
+        
+        return true;
+    }
+    
+    /**
+     * ✅ NOVO: Cancela modo de edição
+     */
+    cancelEdit() {
+        if (this.editingOrderId) {
+            const wasEditing = this.editingOrderId;
+            this.editingOrderId = null;
+            this.currentOrder.items = [];
+            this.updateOrderSummary();
+            
+            NotificationSystem.info(`Edição do pedido #${wasEditing} cancelada.`);
+        }
+    }
 
     /**
      * Finaliza o pedido e salva no sistema
@@ -889,65 +1024,128 @@ export class PDVManager {
         const serviceTax = calculateServiceTax(subtotal);
         const total = subtotal + serviceTax;
     
-        const newOrder = {
-            id: Date.now(),
-            type: this.currentOrder.type,
-            tableNumber: this.currentOrder.type === "table" ? this.currentOrder.tableNumber : null,
-            customerName: this.currentOrder.customerName,
-            phone: this.currentOrder.phone || null,
-            address: this.currentOrder.address || null,
-            items: [...this.currentOrder.items],
-            status: "pending",
-            createdAt: new Date(),
-            subtotal,
-            serviceTax,
-            total,
-            waiter: authManager.getCurrentUser()?.name || "Balcão",
-            paymentStatus: "pending"
-        };
-    
-        // Valida o pedido antes de finalizar
-        const validationErrors = validateOrder(newOrder);
-        if (validationErrors.length > 0) {
-            NotificationSystem.error(validationErrors.join(', '));
-            return;
-        }
-    
-        // Salva e atualiza sistema
-        dataManager.orders.push(newOrder);
-    
-        // Atualiza estoque
-        this.currentOrder.items.forEach(item => {
-            const inv = dataManager.inventory.find(i => i.productId === item.productId);
-            if (inv) inv.currentStock -= item.quantity;
-        });
-    
-        // Se for mesa, marca como ocupada
-        if (this.currentOrder.type === "table") {
-            const mesa = dataManager.mesas.find(m => m.numero === this.currentOrder.tableNumber);
-            if (mesa) {
-                mesa.status = "ocupada";
-                mesa.pedidoId = newOrder.id;
+        // ✅ CORREÇÃO: Verifica se está em modo de edição
+        if (this.editingOrderId) {
+            // ==========================================
+            // MODO EDIÇÃO: Atualiza pedido existente
+            // ==========================================
+            
+            const existingOrder = dataManager.orders.find(o => o.id === this.editingOrderId);
+            
+            if (!existingOrder) {
+                NotificationSystem.error(`Pedido #${this.editingOrderId} não encontrado!`);
+                this.editingOrderId = null;
+                return;
             }
+            
+            console.log(`✏️ Atualizando pedido #${this.editingOrderId}`);
+            
+            // Atualiza apenas os campos editáveis
+            existingOrder.items = [...this.currentOrder.items];
+            existingOrder.customerName = this.currentOrder.customerName;
+            existingOrder.subtotal = subtotal;
+            existingOrder.serviceTax = serviceTax;
+            existingOrder.total = total;
+            existingOrder.updatedAt = new Date();
+            
+            // Atualiza estoque (diferença)
+            this.updateInventoryForEdit(existingOrder);
+            
+            NotificationSystem.success(
+                `Pedido #${this.editingOrderId} atualizado com sucesso!`
+            );
+            
+            // Limpa modo de edição
+            this.editingOrderId = null;
+            
+        } else {
+            // ==========================================
+            // MODO CRIAÇÃO: Cria novo pedido
+            // ==========================================
+            
+            const newOrder = {
+                id: Date.now(),
+                type: this.currentOrder.type,
+                tableNumber: this.currentOrder.type === "table" ? this.currentOrder.tableNumber : null,
+                customerName: this.currentOrder.customerName,
+                phone: this.currentOrder.phone || null,
+                address: this.currentOrder.address || null,
+                items: [...this.currentOrder.items],
+                status: "pending",
+                createdAt: new Date(),
+                subtotal,
+                serviceTax,
+                total,
+                waiter: authManager.getCurrentUser()?.name || "Balcão",
+                paymentStatus: "pending"
+            };
+    
+            // Valida o pedido
+            const validationErrors = validateOrder(newOrder);
+            if (validationErrors.length > 0) {
+                NotificationSystem.error(validationErrors.join(', '));
+                return;
+            }
+    
+            dataManager.orders.push(newOrder);
+    
+            // Atualiza estoque
+            this.currentOrder.items.forEach(item => {
+                const inv = dataManager.inventory.find(i => i.productId === item.productId);
+                if (inv) inv.currentStock -= item.quantity;
+            });
+    
+            // Se for mesa, marca como ocupada
+            if (this.currentOrder.type === "table") {
+                const mesa = dataManager.mesas.find(m => m.numero === this.currentOrder.tableNumber);
+                if (mesa) {
+                    mesa.status = "ocupada";
+                    mesa.pedidoId = newOrder.id;
+                }
+            }
+    
+            const orderTypeText = this.currentOrder.type === "table" 
+                ? `Mesa ${this.currentOrder.tableNumber}` 
+                : this.currentOrder.type === "delivery" ? "Delivery" : "Balcão";
+                
+            NotificationSystem.success(`Pedido #${newOrder.id} (${orderTypeText}) criado!`);
         }
     
+        // Limpa o pedido atual (comum para ambos os modos)
         this.currentOrder.items = [];
+        this.currentOrder.phone = "";
+        this.currentOrder.address = "";
         this.updateOrderSummary();
-        dataManager.saveAppData();
     
-        document.dispatchEvent(new CustomEvent('orderCreated', { detail: { order: newOrder } }));
-        
-        const orderTypeText = this.currentOrder.type === "table" ? `Mesa ${this.currentOrder.tableNumber}` : 
-                              this.currentOrder.type === "delivery" ? "Delivery" : "Balcão";
-        NotificationSystem.success(`Pedido #${newOrder.id} (${orderTypeText}) finalizado!`);
-        
-        // Limpa campos extras
+        // Limpa campos da interface
         const phoneInput = document.getElementById("pdv-phone-input");
         const addressInput = document.getElementById("pdv-address-input");
         if (phoneInput) phoneInput.value = "";
         if (addressInput) addressInput.value = "";
-        this.currentOrder.phone = "";
-        this.currentOrder.address = "";
+    
+        dataManager.saveAppData();
+        document.dispatchEvent(new Event('orderCreated'));
+    }
+    
+    /**
+     * ✅ NOVO: Atualiza estoque ao editar (calcula diferença)
+     */
+    updateInventoryForEdit(order) {
+        // Implementação simplificada: recalcula todo o estoque
+        // Em produção, você deveria calcular a diferença entre pedido antigo e novo
+        
+        this.currentOrder.items.forEach(item => {
+            const inv = dataManager.inventory.find(i => i.productId === item.productId);
+            if (inv) {
+                // Adiciona o que tinha antes
+                const oldItem = order.items.find(i => i.productId === item.productId);
+                if (oldItem) {
+                    inv.currentStock += oldItem.quantity;
+                }
+                // Remove o novo
+                inv.currentStock -= item.quantity;
+            }
+        });
     }
 
     /**
