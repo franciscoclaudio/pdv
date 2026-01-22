@@ -112,30 +112,28 @@ export class AuthManager {
         }
     }
 
-    /**
-     * Converte funcionário cadastrado para formato de usuário do sistema
-     */
+    // No método convertEmployeeToUser, atualize o rolePermissions para incluir delivery
     convertEmployeeToUser(employee) {
-        // Define permissões baseadas no cargo
+        // Define permissões baseadas no cargo - INCLUINDO DELIVERY
         const rolePermissions = {
-            'garcom': ["pdv", "pedidos", "mesas", "cozinha"],
-            'caixa': ["pdv", "pedidos", "mesas", "relatorios", "caixa"],
-            'cozinha': ["cozinha"],
-            'gestor': ["dashboard", "pdv", "pedidos", "cozinha", "mesas", "relatorios", "produtos", "funcionarios", "caixa"],
-            'gerente': ["dashboard", "pdv", "pedidos", "cozinha", "mesas", "relatorios", "produtos", "funcionarios", "caixa"]
+            'garcom': ["pdv", "pedidos", "mesas", "cozinha"], // ❌ SEM delivery
+            'caixa': ["pdv", "pedidos", "mesas", "relatorios", "caixa", "delivery"], // ✅ COM delivery
+            'cozinha': ["cozinha"], // ❌ SEM delivery
+            'gestor': ["dashboard", "pdv", "pedidos", "cozinha", "mesas", "relatorios", "produtos", "funcionarios", "caixa", "delivery"], // ✅ COM delivery
+            'gerente': ["dashboard", "pdv", "pedidos", "cozinha", "mesas", "relatorios", "produtos", "funcionarios", "caixa", "delivery"] // ✅ COM delivery
         };
         const validRole = employee.role && rolePermissions[employee.role] ? employee.role : 'garcom';
-
+    
         return {
             username: employee.email || employee.name.toLowerCase().replace(/\s+/g, ''),
             password: employee.password,
             profile: validRole,  // ✅ Sempre válido
             name: employee.name,
-            permissions: rolePermissions[validRole],  // ✅ Sempre tem permissões
+            permissions: rolePermissions[validRole],  // ✅ Agora inclui delivery para os perfis certos
             isEmployee: true,
             employeeId: employee.id,
-            email: employee.email || null,  // ✅ Adiciona email
-            phone: employee.phone || null   // ✅ Adiciona telefone
+            email: employee.email || null,
+            phone: employee.phone || null
         };
     }
 

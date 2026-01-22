@@ -17,6 +17,7 @@ import { modalsManager } from './modules/modals.js';
 import { employeesManager } from './modules/employees.js';
 import { caixaManager } from './modules/caixa.js';
 import { NotificationSystem } from './modules/notifications.js';
+import { deliveryManager } from './modules/delivery.js';
 
 /**
  * Inicializa o sistema completo
@@ -121,6 +122,11 @@ function initializeModules() {
             case 'caixa':
                 caixaManager.initialize();
                 break;
+            case 'delivery':
+                deliveryManager.initialize();
+                deliveryManager.updateView();
+                break;
+ 
         }
     });
 

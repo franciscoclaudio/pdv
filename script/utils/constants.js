@@ -4,16 +4,16 @@
 
 export const USERS = [
     {username: "garcom", password: "123", profile: "garcom", name: "João Silva", permissions: ["pdv", "pedidos", "mesas", "cozinha"]},
-    {username: "caixa", password: "123", profile: "caixa", name: "Maria Santos", permissions: ["pdv", "pedidos", "mesas", "relatorios", "caixa"]}, // Adicionado "caixa"
+    {username: "caixa", password: "123", profile: "caixa", name: "Maria Santos", permissions: ["pdv", "pedidos", "mesas", "relatorios", "caixa", "delivery"]}, // Adicionado "delivery"
     {username: "cozinha", password: "123", profile: "cozinha", name: "Pedro Cozinha", permissions: ["cozinha"]},
-    {username: "gestor", password: "123", profile: "gestor", name: "Carlos Oliveira", permissions: ["dashboard", "pdv", "pedidos", "cozinha", "mesas", "relatorios", "produtos", "funcionarios", "caixa"]}, // Adicionado "caixa"
+    {username: "gestor", password: "123", profile: "gestor", name: "Carlos Oliveira", permissions: ["dashboard", "pdv", "pedidos", "cozinha", "mesas", "relatorios", "produtos", "funcionarios", "caixa", "delivery"]}, // Adicionado "delivery"
 ];
 export const ROLE_PERMISSIONS = {
     garcom: ["pdv", "pedidos", "mesas", "cozinha"],
-    caixa: ["pdv", "pedidos", "mesas", "relatorios", "caixa"],
+    caixa: ["pdv", "pedidos", "mesas", "relatorios", "caixa", "delivery"],
     cozinha: ["cozinha"],
-    gestor: ["dashboard", "pdv", "pedidos", "cozinha", "mesas", "relatorios", "produtos", "funcionarios", "caixa"],
-    gerente: ["dashboard", "pdv", "pedidos", "cozinha", "mesas", "relatorios", "produtos", "funcionarios", "caixa"]
+    gestor: ["dashboard", "pdv", "pedidos", "cozinha", "mesas", "relatorios", "produtos", "funcionarios", "caixa", "delivery"],
+    gerente: ["dashboard", "pdv", "pedidos", "cozinha", "mesas", "relatorios", "produtos", "funcionarios", "caixa", "delivery"]
 };
 
 export const INITIAL_PRODUCTS = [
@@ -42,12 +42,24 @@ export const CAIXA_STATUS = {
     FECHAMENTO_PENDENTE: "fechamento_pendente"
 };
 
+// Adicione aos status de pedido
 export const ORDER_STATUS = {
     PENDING: "pending",
     PREPARING: "preparing",
     READY: "ready",
     DELIVERED: "delivered",
-    PAID: "paid"
+    PAID: "paid",
+    ENROUTE: "enroute"  
+};
+
+// Atualize os labels de status
+export const STATUS_LABELS = {
+    [ORDER_STATUS.PENDING]: "Pendente",
+    [ORDER_STATUS.PREPARING]: "Preparando",
+    [ORDER_STATUS.READY]: "Pronto",
+    [ORDER_STATUS.DELIVERED]: "Entregue",
+    [ORDER_STATUS.PAID]: "Pago",
+    [ORDER_STATUS.ENROUTE]: "Em Rota"
 };
 
 export const PAYMENT_STATUS = {
@@ -82,14 +94,6 @@ export const STORAGE_KEYS = {
     CURRENT_USER: "currentUser"
 };
 
-export const STATUS_LABELS = {
-    [ORDER_STATUS.PENDING]: "Pendente",
-    [ORDER_STATUS.PREPARING]: "Preparando",
-    [ORDER_STATUS.READY]: "Pronto",
-    [ORDER_STATUS.DELIVERED]: "Entregue",
-    [ORDER_STATUS.PAID]: "Pago"
-};
-
 export const PAYMENT_STATUS_LABELS = {
     [PAYMENT_STATUS.PENDING]: "Pendente",
     [PAYMENT_STATUS.PAID]: "Pago",
@@ -118,5 +122,6 @@ export const TAB_LABELS = {
     relatorios: "Relatórios",
     produtos: "Produtos",
     funcionarios: "Funcionários", 
-    caixa: "Caixa"
+    caixa: "Caixa",
+    delivery: "Delivery"
 };
