@@ -107,11 +107,11 @@ export class NotificationSystem {
                 <div class="dialog-content">
                     <p>${escapeHtml(message)}</p>
                     <div class="dialog-actions">
+                        <button class="btn btn-primary" id="dialog-confirm">
+                        ${escapeHtml(confirmText)}
+                        </button>
                         <button class="btn btn-secondary" id="dialog-cancel">
                             ${escapeHtml(cancelText)}
-                        </button>
-                        <button class="btn btn-primary" id="dialog-confirm">
-                            ${escapeHtml(confirmText)}
                         </button>
                     </div>
                 </div>

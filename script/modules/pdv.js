@@ -781,8 +781,8 @@ export class PDVManager {
                     ${renderProductImage(product.image, product.name)}
                 </div>
                 <div class="product-name">${product.name}</div>
-                <div class="product-category">${normalizedCategory}</div>
                 <div class="product-price">${formatCurrency(product.price)}</div>
+                <div class="product-category">${normalizedCategory}</div>
             `;
 
             productElement.addEventListener("click", () => {

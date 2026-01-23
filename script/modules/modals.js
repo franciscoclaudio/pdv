@@ -192,24 +192,6 @@ export class ModalsManager {
                                 <span class="status-text">Aguardando preparo</span>
                             </div>
                         </div>
-                        <div class="mesa-info-details">
-                            <div class="info-item">
-                                <span class="info-label">Cliente:</span>
-                                <span class="info-value" id="mesa-cliente-nome">Não informado</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Garçom:</span>
-                                <span class="info-value" id="mesa-garcom">Não informado</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Tempo:</span>
-                                <span class="info-value" id="mesa-tempo">0 min</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">Pedido ID:</span>
-                                <span class="info-value" id="mesa-pedido-id">#00000</span>
-                            </div>
-                        </div>
                     </div>
                     <span class="close">×</span>
                 </div>

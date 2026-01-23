@@ -23,9 +23,8 @@ export class ProductsManager {
         this.injectStyles(); // Injeta estilos CSS
         this.updateView();
     }
-
     /**
-     * Injeta estilos CSS para centralizar textos
+     * Injeta estilos CSS para centralizar textos (VERSÃO COM CARDS COMPACTOS)
      */
     injectStyles() {
         // Remove estilos anteriores se existirem
@@ -33,7 +32,7 @@ export class ProductsManager {
         if (existingStyle) {
             existingStyle.remove();
         }
-
+    
         const style = document.createElement('style');
         style.id = 'products-custom-styles';
         style.textContent = `
@@ -45,7 +44,7 @@ export class ProductsManager {
                 padding: 20px;
                 width: 100%;
             }
-
+    
             .card-item {
                 border: 1px solid #e0e0e0;
                 border-radius: 12px;
@@ -55,17 +54,17 @@ export class ProductsManager {
                 transition: all 0.3s ease;
                 display: flex;
                 flex-direction: column;
-                align-items: center; /* Centraliza horizontalmente */
-                text-align: center; /* Centraliza texto */
+                align-items: center;
+                text-align: center;
                 height: 100%;
             }
-
+    
             .card-item:hover {
                 transform: translateY(-4px);
                 box-shadow: 0 6px 20px rgba(0,0,0,0.12);
                 border-color: #3498db;
             }
-
+    
             .card-header {
                 display: flex;
                 justify-content: space-between;
@@ -73,7 +72,7 @@ export class ProductsManager {
                 width: 100%;
                 margin-bottom: 15px;
             }
-
+    
             .card-badge {
                 background: #3498db;
                 color: white;
@@ -82,12 +81,12 @@ export class ProductsManager {
                 font-size: 0.8rem;
                 font-weight: 500;
             }
-
+    
             .actions {
                 display: flex;
                 gap: 8px;
             }
-
+    
             .btn-icon {
                 background: none;
                 border: none;
@@ -102,17 +101,17 @@ export class ProductsManager {
                 width: 36px;
                 height: 36px;
             }
-
+    
             .btn-icon:hover {
                 background: #f5f5f5;
                 transform: scale(1.1);
             }
-
+    
             .btn-icon.danger:hover {
                 background: #ffebee;
                 color: #e74c3c;
             }
-
+    
             .card-item h4 {
                 margin: 0 0 10px 0;
                 font-size: 1.2rem;
@@ -124,20 +123,20 @@ export class ProductsManager {
                 align-items: center;
                 gap: 8px;
             }
-
+    
             /* Status badge dentro do h4 */
             .card-item h4 span {
                 margin-left: 0;
                 margin-top: 4px;
             }
-
+    
             .card-item p {
                 margin: 8px 0;
                 width: 100%;
                 text-align: center;
                 line-height: 1.5;
             }
-
+    
             /* Container da imagem centralizada */
             .product-image-container {
                 width: 160px;
@@ -150,13 +149,13 @@ export class ProductsManager {
                 border-radius: 10px;
                 background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             }
-
+    
             .product-image-container img {
                 max-width: 100%;
                 max-height: 100%;
                 object-fit: contain;
             }
-
+    
             .product-image-container .image-placeholder {
                 font-size: 3.5rem;
                 color: #95a5a6;
@@ -166,7 +165,7 @@ export class ProductsManager {
                 width: 100%;
                 height: 100%;
             }
-
+    
             .price {
                 font-size: 1.4rem;
                 font-weight: bold;
@@ -177,7 +176,7 @@ export class ProductsManager {
                 border-radius: 8px;
                 display: inline-block;
             }
-
+    
             /* Textos de descrição */
             .card-item p[style*="color: #666"] {
                 color: #666 !important;
@@ -188,7 +187,7 @@ export class ProductsManager {
                 line-height: 1.4 !important;
                 min-height: 40px;
             }
-
+    
             /* Texto SKU */
             .card-item p[style*="color: #999"] {
                 color: #999 !important;
@@ -198,7 +197,7 @@ export class ProductsManager {
                 width: 100% !important;
                 font-style: italic;
             }
-
+    
             /* Mensagem de nenhum produto */
             .no-data {
                 grid-column: 1 / -1;
@@ -214,8 +213,107 @@ export class ProductsManager {
                 align-items: center;
                 justify-content: center;
             }
-
-            /* Responsividade */
+    
+            /* ===========================
+               ESTILOS COMPACTOS APENAS PARA ABA PRODUTOS
+               =========================== */
+            #produtos .grid-cadastro {
+                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                gap: 12px;
+                padding: 12px;
+            }
+    
+            #produtos .card-item {
+                min-height: 240px;
+                padding: 12px;
+            }
+    
+            #produtos .product-image-container {
+                width: 100px;
+                height: 100px;
+                margin: 8px auto 12px auto;
+            }
+    
+            #produtos .card-item h4 {
+                font-size: 0.95rem;
+                margin: 0 0 6px 0;
+                min-height: 2.2em;
+            }
+    
+            #produtos .card-item p {
+                font-size: 0.85rem;
+                margin: 4px 0;
+                min-height: 2.6em;
+                line-height: 1.3;
+            }
+    
+            #produtos .price {
+                font-size: 1rem;
+                padding: 6px 12px;
+                margin: 8px 0 0 0;
+            }
+    
+            #produtos .actions {
+                margin-top: 8px;
+            }
+    
+            #produtos .btn-icon {
+                width: 32px;
+                height: 32px;
+                font-size: 1rem;
+            }
+    
+            #produtos .card-item h4 span {
+                font-size: 0.65rem;
+                padding: 1px 6px;
+            }
+    
+            /* Responsividade para cards compactos */
+            @media (max-width: 1024px) {
+                #produtos .grid-cadastro {
+                    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                    gap: 10px;
+                    padding: 10px;
+                }
+                
+                #produtos .card-item {
+                    min-height: 220px;
+                    padding: 10px;
+                }
+                
+                #produtos .product-image-container {
+                    width: 90px;
+                    height: 90px;
+                }
+            }
+    
+            @media (max-width: 768px) {
+                #produtos .grid-cadastro {
+                    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+                    gap: 8px;
+                    padding: 8px;
+                }
+                
+                #produtos .card-item {
+                    min-height: 200px;
+                    padding: 8px;
+                }
+                
+                #produtos .product-image-container {
+                    width: 80px;
+                    height: 80px;
+                }
+                
+                #produtos .card-item h4 {
+                    font-size: 0.9rem;
+                }
+                
+                #produtos .price {
+                    font-size: 0.9rem;
+                }
+            }
+    
+            /* Responsividade geral (mantida para outras abas) */
             @media (max-width: 1024px) {
                 .grid-cadastro {
                     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -228,7 +326,7 @@ export class ProductsManager {
                     height: 140px;
                 }
             }
-
+    
             @media (max-width: 768px) {
                 .grid-cadastro {
                     grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -253,7 +351,7 @@ export class ProductsManager {
                     font-size: 1.2rem;
                 }
             }
-
+    
             @media (max-width: 480px) {
                 .grid-cadastro {
                     grid-template-columns: 1fr;
